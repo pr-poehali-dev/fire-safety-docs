@@ -476,7 +476,7 @@ export default function Index() {
               <img 
                 src="https://cdn.poehali.dev/files/7eCGrXECMATKYFQkOfv3tGTPRcrxWQ6APZ2dTGv9.png" 
                 alt="Код безопасности РУСАЛ" 
-                className="h-24 w-auto brightness-110 contrast-125 animate-in fade-in zoom-in duration-700"
+                className="h-24 w-auto brightness-110 contrast-125 animate-in fade-in zoom-in duration-700 hover:scale-105 transition-transform cursor-pointer"
                 style={{ 
                   filter: 'brightness(1.1) contrast(1.25) drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
                   backgroundColor: 'transparent'
