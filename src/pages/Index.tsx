@@ -8,6 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import JournalSection from '@/components/JournalSection';
+import DocumentationSection from '@/components/DocumentationSection';
+import ChecklistSection from '@/components/ChecklistSection';
+import DrillsSection from '@/components/DrillsSection';
+import AssessmentDashboard from '@/components/AssessmentDashboard';
+import ExecutiveDocsSection from '@/components/ExecutiveDocsSection';
+import CalculationsSection from '@/components/CalculationsSection';
+import AuditsSection from '@/components/AuditsSection';
+import DeclarationSection from '@/components/DeclarationSection';
+import InsuranceSection from '@/components/InsuranceSection';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -26,17 +35,16 @@ interface ObjectData {
 }
 
 const mainSections = [
-  { id: 'order', icon: 'FileText', title: 'Приказ о назначении ответственного за ПБ', color: 'bg-orange-500' },
-  { id: 'instructions', icon: 'BookOpen', title: 'Инструкции о мерах пожарной безопасности', color: 'bg-blue-500' },
-  { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-orange-500' },
-  { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-blue-500' },
-  { id: 'drills', icon: 'Users', title: 'Тренировки по эвакуации', color: 'bg-orange-500' },
-  { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-blue-500' },
-  { id: 'documentation', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-orange-500' },
-  { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-blue-500' },
-  { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-orange-500' },
-  { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-blue-500' },
-  { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-orange-500' },
+  { id: 'documentation', icon: 'FileText', title: 'Документация', color: 'bg-orange-500' },
+  { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
+  { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
+  { id: 'drills', icon: 'Users', title: 'Тренировки по эвакуации', color: 'bg-blue-500' },
+  { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-orange-500' },
+  { id: 'executive_docs', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-blue-500' },
+  { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-orange-500' },
+  { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-blue-500' },
+  { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-orange-500' },
+  { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-blue-500' },
 ];
 
 const journalSubsections = [
@@ -51,9 +59,9 @@ const journalSubsections = [
     ],
     fields: [
       { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
-      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'building_name', label: 'Наименование здания/помещения', type: 'textarea' },
       { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
-      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)', type: 'textarea' },
     ],
   },
   {
@@ -67,9 +75,9 @@ const journalSubsections = [
     ],
     fields: [
       { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
-      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'building_name', label: 'Наименование здания/помещения', type: 'textarea' },
       { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
-      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)', type: 'textarea' },
     ],
   },
   {
@@ -82,9 +90,9 @@ const journalSubsections = [
     ],
     fields: [
       { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
-      { key: 'system_type', label: 'Тип системы (наименование здания/помещения)' },
+      { key: 'system_type', label: 'Тип системы (наименование здания/помещения)', type: 'textarea' },
       { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
-      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)', type: 'textarea' },
     ],
   },
   {
@@ -98,9 +106,9 @@ const journalSubsections = [
     ],
     fields: [
       { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
-      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'building_name', label: 'Наименование здания/помещения', type: 'textarea' },
       { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
-      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)', type: 'textarea' },
     ],
   },
   {
@@ -112,12 +120,12 @@ const journalSubsections = [
       { key: 'brand', label: 'Марка' },
       { key: 'assigned_number', label: 'Номер' },
       { key: 'commissioning_date', label: 'Дата ввода', type: 'date' },
-      { key: 'installation_location', label: 'Место установки' },
+      { key: 'installation_location', label: 'Место установки', type: 'textarea' },
       { key: 'initial_parameters', label: 'Параметры', type: 'textarea' },
-      { key: 'inspection_dates', label: 'Даты осмотров' },
+      { key: 'inspection_dates', label: 'Даты осмотров', type: 'textarea' },
       { key: 'maintenance_date', label: 'Дата ТО', type: 'date' },
       { key: 'recharge_date', label: 'Дата перезарядки', type: 'date' },
-      { key: 'recharge_organization', label: 'Организация' },
+      { key: 'recharge_organization', label: 'Организация', type: 'textarea' },
       { key: 'responsible_person', label: 'Ответственное лицо' },
     ],
   },
@@ -153,7 +161,7 @@ const journalSubsections = [
     fullTitle: 'Раздел VIII. Проверка огнезадерживающих устройств',
     fields: [
       { key: 'device_name', label: 'Устройство, место установки', type: 'textarea' },
-      { key: 'inspection_dates', label: 'Дата проверки' },
+      { key: 'inspection_dates', label: 'Дата проверки', type: 'textarea' },
       { key: 'inspection_result', label: 'Результаты', type: 'textarea' },
       { key: 'inspector', label: 'Проверку провел' },
     ],
@@ -165,9 +173,9 @@ const journalSubsections = [
     fullTitle: 'Раздел IX. Проверка водоотдачи внутренних пожарных кранов',
     fields: [
       { key: 'inspection_date', label: 'Дата', type: 'date' },
-      { key: 'hydrant_numbers', label: 'Номера ПК' },
+      { key: 'hydrant_numbers', label: 'Номера ПК', type: 'textarea' },
       { key: 'required_water_flow', label: 'Норматив', type: 'textarea' },
-      { key: 'flow_result', label: 'Результат' },
+      { key: 'flow_result', label: 'Результат', type: 'textarea' },
       { key: 'completeness_result', label: 'Укомплектованность', type: 'textarea' },
       { key: 'inspector', label: 'Проверку провел' },
     ],
@@ -181,7 +189,7 @@ const journalSubsections = [
       { key: 'inspection_date', label: 'Дата', type: 'date' },
       { key: 'hydrant_info', label: 'Водопровод, номера гидрантов', type: 'textarea' },
       { key: 'required_water_flow', label: 'Норматив', type: 'textarea' },
-      { key: 'flow_result', label: 'Результат' },
+      { key: 'flow_result', label: 'Результат', type: 'textarea' },
       { key: 'inspector', label: 'Проверку провел' },
     ],
   },
@@ -205,7 +213,7 @@ const journalSubsections = [
     fields: [
       { key: 'rolling_date', label: 'Дата', type: 'date' },
       { key: 'hose_count', label: 'Количество', type: 'number' },
-      { key: 'completion_note', label: 'Отметка' },
+      { key: 'completion_note', label: 'Отметка', type: 'textarea' },
       { key: 'executor', label: 'Выполнил' },
     ],
   },
@@ -217,7 +225,7 @@ const journalSubsections = [
     fields: [
       { key: 'test_date', label: 'Дата', type: 'date' },
       { key: 'protocol_number', label: 'Номер протокола' },
-      { key: 'structure_name', label: 'Конструкции' },
+      { key: 'structure_name', label: 'Конструкции', type: 'textarea' },
       { key: 'test_result', label: 'Результаты', type: 'textarea' },
       { key: 'inspector', label: 'Выполнил' },
     ],
@@ -499,137 +507,107 @@ export default function Index() {
                 <CardContent>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        01 / Наименование объекта
-                      </Label>
+                      <Label htmlFor="name">Наименование объекта</Label>
                       <Input
                         id="name"
                         value={objectData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="Введите наименование"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="functionalClass" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        02 / Класс функциональной пожарной опасности
-                      </Label>
+                      <Label htmlFor="functionalClass">Класс функциональной пожарной опасности</Label>
                       <Input
                         id="functionalClass"
                         value={objectData.functionalClass}
                         onChange={(e) => handleInputChange('functionalClass', e.target.value)}
                         placeholder="Например: Ф1.1, Ф2.3"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="commissioningDate" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        03 / Дата ввода в эксплуатацию
-                      </Label>
+                      <Label htmlFor="commissioningDate">Дата ввода в эксплуатацию</Label>
                       <Input
                         id="commissioningDate"
                         type="date"
                         value={objectData.commissioningDate}
                         onChange={(e) => handleInputChange('commissioningDate', e.target.value)}
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        04 / Адрес
-                      </Label>
+                      <Label htmlFor="address">Адрес</Label>
                       <Input
                         id="address"
                         value={objectData.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
                         placeholder="Полный адрес объекта"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="area" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        05 / Площадь (м²)
-                      </Label>
+                      <Label htmlFor="area">Площадь (м²)</Label>
                       <Input
                         id="area"
                         type="number"
                         value={objectData.area}
                         onChange={(e) => handleInputChange('area', e.target.value)}
                         placeholder="0"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="height" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        06 / Высота (м)
-                      </Label>
+                      <Label htmlFor="height">Высота (м)</Label>
                       <Input
                         id="height"
                         type="number"
                         value={objectData.height}
                         onChange={(e) => handleInputChange('height', e.target.value)}
                         placeholder="0"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="floors" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        07 / Этажность
-                      </Label>
+                      <Label htmlFor="floors">Этажность</Label>
                       <Input
                         id="floors"
                         type="number"
                         value={objectData.floors}
                         onChange={(e) => handleInputChange('floors', e.target.value)}
                         placeholder="0"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="workplaces" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        08 / Количество рабочих мест
-                      </Label>
+                      <Label htmlFor="workplaces">Количество рабочих мест</Label>
                       <Input
                         id="workplaces"
                         type="number"
                         value={objectData.workplaces}
                         onChange={(e) => handleInputChange('workplaces', e.target.value)}
                         placeholder="0"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="workingHours" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        09 / Режим работы
-                      </Label>
+                      <Label htmlFor="workingHours">Режим работы</Label>
                       <Input
                         id="workingHours"
                         value={objectData.workingHours}
                         onChange={(e) => handleInputChange('workingHours', e.target.value)}
                         placeholder="Например: 9:00-18:00"
-                        className="font-mono"
                       />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="protectionSystems" className="text-xs uppercase tracking-wider text-muted-foreground">
-                        10 / Наличие систем противопожарной защиты
-                      </Label>
+                      <Label htmlFor="protectionSystems">Наличие систем противопожарной защиты</Label>
                       <Textarea
                         id="protectionSystems"
                         value={objectData.protectionSystems}
                         onChange={(e) => handleInputChange('protectionSystems', e.target.value)}
                         placeholder="Перечислите установленные системы: АУПС, СОУЭ, АПТ, АУПТ и т.д."
                         rows={4}
-                        className="font-mono"
                       />
                     </div>
                   </div>
@@ -653,11 +631,13 @@ export default function Index() {
                   </Button>
                 </CardContent>
               </Card>
+            ) : activeSection === 'documentation' ? (
+              <DocumentationSection />
             ) : activeSection === 'journal' ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded bg-orange-500 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded bg-blue-500 flex items-center justify-center">
                       <Icon name="Clipboard" className="text-white" size={24} />
                     </div>
                     <div>
@@ -687,7 +667,7 @@ export default function Index() {
                           sectionId={subsection.id}
                           title={subsection.fullTitle}
                           icon={subsection.icon}
-                          color="bg-orange-500"
+                          color="bg-blue-500"
                           fields={subsection.fields}
                           headerFields={subsection.headerFields}
                           onSave={(data) => handleSectionSave(subsection.id, data)}
@@ -698,6 +678,22 @@ export default function Index() {
                   </Tabs>
                 </CardContent>
               </Card>
+            ) : activeSection === 'checklist' ? (
+              <ChecklistSection />
+            ) : activeSection === 'drills' ? (
+              <DrillsSection />
+            ) : activeSection === 'assessment' ? (
+              <AssessmentDashboard />
+            ) : activeSection === 'executive_docs' ? (
+              <ExecutiveDocsSection />
+            ) : activeSection === 'calculations' ? (
+              <CalculationsSection />
+            ) : activeSection === 'audits' ? (
+              <AuditsSection />
+            ) : activeSection === 'declaration' ? (
+              <DeclarationSection objectData={objectData} />
+            ) : activeSection === 'insurance' ? (
+              <InsuranceSection />
             ) : (
               <Card>
                 <CardHeader>
