@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import JournalSection from '@/components/JournalSection';
+import { useToast } from '@/hooks/use-toast';
 
 interface ObjectData {
   name: string;
@@ -20,18 +25,214 @@ interface ObjectData {
   protectionSystems: string;
 }
 
-const sections = [
-  { id: 'order', icon: 'FileText', title: 'Приказ о назначении ответственного за ПБ', color: 'bg-orange-500' },
-  { id: 'instructions', icon: 'BookOpen', title: 'Инструкции о мерах пожарной безопасности', color: 'bg-blue-500' },
-  { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-orange-500' },
-  { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-blue-500' },
-  { id: 'drills', icon: 'Users', title: 'Тренировки по эвакуации', color: 'bg-orange-500' },
-  { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-blue-500' },
-  { id: 'documentation', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-orange-500' },
-  { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-blue-500' },
-  { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-orange-500' },
-  { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-blue-500' },
-  { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-orange-500' },
+const journalSections = [
+  {
+    id: 'aups',
+    icon: 'Radio',
+    title: 'Раздел I. АУПС (Автоматическая установка пожарной сигнализации)',
+    color: 'bg-orange-500',
+    headerFields: [
+      { key: 'installation_type', label: 'Тип установки (адресная/безадресная)', type: 'text' },
+      { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
+    ],
+    fields: [
+      { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
+      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'soue',
+    icon: 'Bell',
+    title: 'Раздел II. СОУЭ (Система оповещения и управления эвакуацией)',
+    color: 'bg-blue-500',
+    headerFields: [
+      { key: 'installation_type', label: 'Тип установки (1-5)', type: 'text' },
+      { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
+    ],
+    fields: [
+      { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
+      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'smoke_ventilation',
+    icon: 'Wind',
+    title: 'Раздел III. Системы противодымной вентиляции',
+    color: 'bg-orange-500',
+    headerFields: [
+      { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
+    ],
+    fields: [
+      { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
+      { key: 'system_type', label: 'Тип системы (наименование здания/помещения)' },
+      { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'aupt',
+    icon: 'Droplet',
+    title: 'Раздел IV. АУПТ (Автоматическая установка пожаротушения)',
+    color: 'bg-blue-500',
+    headerFields: [
+      { key: 'installation_type', label: 'Тип установки', type: 'text' },
+      { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
+    ],
+    fields: [
+      { key: 'work_date', label: 'Дата выполнения работ', type: 'date' },
+      { key: 'building_name', label: 'Наименование здания/помещения' },
+      { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
+      { key: 'executor', label: 'Работы проведены (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'fire_extinguishers',
+    icon: 'Zap',
+    title: 'Раздел V. Учет наличия, осмотра и перезарядки огнетушителей',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'brand', label: 'Марка огнетушителя' },
+      { key: 'assigned_number', label: 'Присвоенный номер' },
+      { key: 'commissioning_date', label: 'Дата введения в эксплуатацию', type: 'date' },
+      { key: 'installation_location', label: 'Место установки' },
+      { key: 'initial_parameters', label: 'Параметры при осмотре', type: 'textarea' },
+      { key: 'inspection_dates', label: 'Дата осмотра, замечания' },
+      { key: 'maintenance_date', label: 'Дата ТО со вскрытием', type: 'date' },
+      { key: 'recharge_date', label: 'Дата перезарядки', type: 'date' },
+      { key: 'recharge_organization', label: 'Организация, проводившая перезарядку' },
+      { key: 'responsible_person', label: 'Ответственное лицо' },
+    ],
+  },
+  {
+    id: 'fire_blankets',
+    icon: 'ShieldCheck',
+    title: 'Раздел VI. Проверка покрывал для изоляции очага возгорания',
+    color: 'bg-blue-500',
+    fields: [
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'location_info', label: 'Место размещения, количество, размер', type: 'textarea' },
+      { key: 'inspection_result', label: 'Результат проверки, замечания', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'fire_protection',
+    icon: 'Shield',
+    title: 'Раздел VII. Проверка состояния огнезащитных покрытий',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'act_number', label: 'Номер акта (протокола)' },
+      { key: 'structure_info', label: 'Наименование конструкций. Вид огнезащиты.', type: 'textarea' },
+      { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'fire_dampers',
+    icon: 'Box',
+    title: 'Раздел VIII. Проверка огнезадерживающих устройств',
+    color: 'bg-blue-500',
+    fields: [
+      { key: 'device_name', label: 'Наименование устройства, место установки', type: 'textarea' },
+      { key: 'inspection_dates', label: 'Дата проверки' },
+      { key: 'inspection_result', label: 'Результаты проверки', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'indoor_hydrants',
+    icon: 'Pipette',
+    title: 'Раздел IX. Проверка водоотдачи внутренних пожарных кранов',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'hydrant_numbers', label: 'Количество и номера задействованных ПК' },
+      { key: 'required_water_flow', label: 'Нормативное значение водоотдачи', type: 'textarea' },
+      { key: 'flow_result', label: 'Результаты проверки водоотдачи' },
+      { key: 'completeness_result', label: 'Укомплектованность ПК', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'outdoor_hydrants',
+    icon: 'Wrench',
+    title: 'Раздел X. Проверка наружных водопроводов противопожарного водоснабжения',
+    color: 'bg-blue-500',
+    fields: [
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'hydrant_info', label: 'Наименование водопровода, номера гидрантов', type: 'textarea' },
+      { key: 'required_water_flow', label: 'Нормативное значение водоотдачи', type: 'textarea' },
+      { key: 'flow_result', label: 'Результаты проверки' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'valves_pumps',
+    icon: 'Settings',
+    title: 'Раздел XI. Проверка задвижек и пожарных насосных агрегатов',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'equipment_info', label: 'Наименование устройств и насосов, место установки', type: 'textarea' },
+      { key: 'inspection_result', label: 'Результаты проверки работоспособности', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'hose_rolling',
+    icon: 'RotateCw',
+    title: 'Раздел XII. Перекатка пожарных рукавов',
+    color: 'bg-blue-500',
+    fields: [
+      { key: 'rolling_date', label: 'Дата перекатки', type: 'date' },
+      { key: 'hose_count', label: 'Количество пожарных рукавов', type: 'number' },
+      { key: 'completion_note', label: 'Отметка о проведении перекатки' },
+      { key: 'executor', label: 'Перекатка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'ladder_tests',
+    icon: 'Layers',
+    title: 'Раздел XIII. Испытания пожарных лестниц и ограждений',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'test_date', label: 'Дата испытаний', type: 'date' },
+      { key: 'protocol_number', label: 'Номер протокола' },
+      { key: 'structure_name', label: 'Наименование испытываемых конструкций' },
+      { key: 'test_result', label: 'Результаты испытаний', type: 'textarea' },
+      { key: 'inspector', label: 'Испытание проведены (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'ventilation_cleaning',
+    icon: 'Filter',
+    title: 'Раздел XIV. Очистка вентиляционных систем',
+    color: 'bg-blue-500',
+    fields: [
+      { key: 'equipment_info', label: 'Наименование систем, место установки с указанием категории', type: 'textarea' },
+      { key: 'work_date', label: 'Дата проведения работ', type: 'date' },
+      { key: 'act_number', label: 'Номер акта' },
+      { key: 'work_description', label: 'Наименование проведенных работ', type: 'textarea' },
+      { key: 'executor', label: 'Ответственный исполнитель (должность, Ф.И.О., организация)' },
+    ],
+  },
+  {
+    id: 'ppe',
+    icon: 'Glasses',
+    title: 'Раздел XV. Проверка средств индивидуальной защиты',
+    color: 'bg-orange-500',
+    fields: [
+      { key: 'equipment_info', label: 'Наименование СИЗ, количество, место размещения', type: 'textarea' },
+      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
+      { key: 'inspection_result', label: 'Результаты проверки', type: 'textarea' },
+      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+    ],
+  },
 ];
 
 export default function Index() {
@@ -49,9 +250,165 @@ export default function Index() {
   });
 
   const [activeSection, setActiveSection] = useState<string>('characteristics');
+  const [journalData, setJournalData] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadObjectData();
+    loadJournalData();
+  }, []);
+
+  const loadObjectData = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=object_characteristics`);
+      const data = await response.json();
+      if (data.length > 0) {
+        const latest = data[0];
+        setObjectData({
+          name: latest.name || '',
+          functionalClass: latest.functional_class || '',
+          commissioningDate: latest.commissioning_date || '',
+          address: latest.address || '',
+          area: latest.area?.toString() || '',
+          height: latest.height?.toString() || '',
+          floors: latest.floors?.toString() || '',
+          workplaces: latest.workplaces?.toString() || '',
+          workingHours: latest.working_hours || '',
+          protectionSystems: latest.protection_systems || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading object data:', error);
+    }
+  };
+
+  const loadJournalData = async () => {
+    const tables = [
+      'section_aups', 'section_soue', 'section_smoke_ventilation', 'section_aupt',
+      'section_fire_extinguishers', 'section_fire_blankets', 'section_fire_protection',
+      'section_fire_dampers', 'section_indoor_hydrants', 'section_outdoor_hydrants',
+      'section_valves_pumps', 'section_hose_rolling', 'section_ladder_tests',
+      'section_ventilation_cleaning', 'section_ppe'
+    ];
+    
+    const mapping: Record<string, string> = {
+      'section_aups': 'aups',
+      'section_soue': 'soue',
+      'section_smoke_ventilation': 'smoke_ventilation',
+      'section_aupt': 'aupt',
+      'section_fire_extinguishers': 'fire_extinguishers',
+      'section_fire_blankets': 'fire_blankets',
+      'section_fire_protection': 'fire_protection',
+      'section_fire_dampers': 'fire_dampers',
+      'section_indoor_hydrants': 'indoor_hydrants',
+      'section_outdoor_hydrants': 'outdoor_hydrants',
+      'section_valves_pumps': 'valves_pumps',
+      'section_hose_rolling': 'hose_rolling',
+      'section_ladder_tests': 'ladder_tests',
+      'section_ventilation_cleaning': 'ventilation_cleaning',
+      'section_ppe': 'ppe'
+    };
+
+    try {
+      const newData: Record<string, any[]> = {};
+      for (const table of tables) {
+        const response = await fetch(`${API_URL}?table=${table}`);
+        const data = await response.json();
+        newData[mapping[table]] = data;
+      }
+      setJournalData(newData);
+    } catch (error) {
+      console.error('Error loading journal data:', error);
+    }
+  };
 
   const handleInputChange = (field: keyof ObjectData, value: string) => {
     setObjectData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveObjectCharacteristics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'object_characteristics',
+          name: objectData.name,
+          functional_class: objectData.functionalClass,
+          commissioning_date: objectData.commissioningDate || null,
+          address: objectData.address,
+          area: objectData.area ? parseFloat(objectData.area) : null,
+          height: objectData.height ? parseFloat(objectData.height) : null,
+          floors: objectData.floors ? parseInt(objectData.floors) : null,
+          workplaces: objectData.workplaces ? parseInt(objectData.workplaces) : null,
+          working_hours: objectData.workingHours,
+          protection_systems: objectData.protectionSystems,
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Сохранено',
+          description: 'Характеристики объекта успешно сохранены',
+        });
+        loadObjectData();
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить данные',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSectionSave = async (sectionId: string, data: any) => {
+    const tableMapping: Record<string, string> = {
+      'aups': 'section_aups',
+      'soue': 'section_soue',
+      'smoke_ventilation': 'section_smoke_ventilation',
+      'aupt': 'section_aupt',
+      'fire_extinguishers': 'section_fire_extinguishers',
+      'fire_blankets': 'section_fire_blankets',
+      'fire_protection': 'section_fire_protection',
+      'fire_dampers': 'section_fire_dampers',
+      'indoor_hydrants': 'section_indoor_hydrants',
+      'outdoor_hydrants': 'section_outdoor_hydrants',
+      'valves_pumps': 'section_valves_pumps',
+      'hose_rolling': 'section_hose_rolling',
+      'ladder_tests': 'section_ladder_tests',
+      'ventilation_cleaning': 'section_ventilation_cleaning',
+      'ppe': 'section_ppe'
+    };
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: tableMapping[sectionId],
+          ...data,
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Запись добавлена',
+          description: 'Данные успешно сохранены',
+        });
+        loadJournalData();
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить запись',
+        variant: 'destructive',
+      });
+    }
   };
 
   const completionPercentage = Object.values(objectData).filter(v => v !== '').length / Object.keys(objectData).length * 100;
@@ -86,7 +443,7 @@ export default function Index() {
                   Навигация
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1">
+              <CardContent className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <Button
                   variant={activeSection === 'characteristics' ? 'default' : 'ghost'}
                   className="w-full justify-start text-sm"
@@ -95,15 +452,15 @@ export default function Index() {
                   <Icon name="Settings" size={16} className="mr-2" />
                   Характеристики объекта
                 </Button>
-                {sections.map((section) => (
+                {journalSections.map((section) => (
                   <Button
                     key={section.id}
                     variant={activeSection === section.id ? 'default' : 'ghost'}
-                    className="w-full justify-start text-sm"
+                    className="w-full justify-start text-xs h-auto py-2"
                     onClick={() => setActiveSection(section.id)}
                   >
-                    <Icon name={section.icon as any} size={16} className="mr-2" />
-                    <span className="truncate">{section.title}</span>
+                    <Icon name={section.icon as any} size={14} className="mr-2 shrink-0" />
+                    <span className="text-left line-clamp-2">{section.title}</span>
                   </Button>
                 ))}
               </CardContent>
@@ -275,32 +632,28 @@ export default function Index() {
                     </div>
                   </div>
 
-                  <Button className="w-full mt-6" size="lg">
+                  <Button className="w-full mt-6" size="lg" onClick={saveObjectCharacteristics} disabled={loading}>
                     <Icon name="Save" size={18} className="mr-2" />
-                    Сохранить характеристики
+                    {loading ? 'Сохранение...' : 'Сохранить характеристики'}
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded ${sections.find(s => s.id === activeSection)?.color} flex items-center justify-center`}>
-                      <Icon name={sections.find(s => s.id === activeSection)?.icon as any} className="text-white" size={24} />
-                    </div>
-                    <div>
-                      <CardTitle>{sections.find(s => s.id === activeSection)?.title}</CardTitle>
-                      <CardDescription>Раздел в разработке</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Icon name="Construction" size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Этот раздел находится в разработке</p>
-                  </div>
-                </CardContent>
-              </Card>
+              journalSections
+                .filter(section => section.id === activeSection)
+                .map(section => (
+                  <JournalSection
+                    key={section.id}
+                    sectionId={section.id}
+                    title={section.title}
+                    icon={section.icon}
+                    color={section.color}
+                    fields={section.fields}
+                    headerFields={section.headerFields}
+                    onSave={(data) => handleSectionSave(section.id, data)}
+                    data={journalData[section.id] || []}
+                  />
+                ))
             )}
           </div>
         </div>

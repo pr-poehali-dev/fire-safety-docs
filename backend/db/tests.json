@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Get object characteristics",
+      "method": "GET",
+      "path": "/?table=object_characteristics",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Create object record",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "table": "object_characteristics",
+        "name": "Test Object",
+        "functional_class": "F1.1"
+      },
+      "expectedStatus": 201
+    }
+  ]
+}
