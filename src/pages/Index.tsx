@@ -28,9 +28,16 @@ interface ObjectData {
   functionalClass: string;
   commissioningDate: string;
   address: string;
+  location: string;
+  fireResistance: string;
+  structuralFireHazard: string;
   area: string;
+  floorArea: string;
   height: string;
   floors: string;
+  volume: string;
+  outdoorCategory: string;
+  buildingCategory: string;
   workplaces: string;
   workingHours: string;
   protectionSystems: string;
@@ -267,9 +274,16 @@ export default function Index() {
     functionalClass: '',
     commissioningDate: '',
     address: '',
+    location: '',
+    fireResistance: '',
+    structuralFireHazard: '',
     area: '',
+    floorArea: '',
     height: '',
     floors: '',
+    volume: '',
+    outdoorCategory: '',
+    buildingCategory: '',
     workplaces: '',
     workingHours: '',
     protectionSystems: '',
@@ -297,9 +311,16 @@ export default function Index() {
           functionalClass: latest.functional_class || '',
           commissioningDate: latest.commissioning_date || '',
           address: latest.address || '',
+          location: latest.location || '',
+          fireResistance: latest.fire_resistance || '',
+          structuralFireHazard: latest.structural_fire_hazard || '',
           area: latest.area?.toString() || '',
+          floorArea: latest.floor_area?.toString() || '',
           height: latest.height?.toString() || '',
           floors: latest.floors?.toString() || '',
+          volume: latest.volume?.toString() || '',
+          outdoorCategory: latest.outdoor_category || '',
+          buildingCategory: latest.building_category || '',
           workplaces: latest.workplaces?.toString() || '',
           workingHours: latest.working_hours || '',
           protectionSystems: latest.protection_systems || '',
@@ -366,9 +387,16 @@ export default function Index() {
           functional_class: objectData.functionalClass,
           commissioning_date: objectData.commissioningDate || null,
           address: objectData.address,
+          location: objectData.location,
+          fire_resistance: objectData.fireResistance,
+          structural_fire_hazard: objectData.structuralFireHazard,
           area: objectData.area ? parseFloat(objectData.area) : null,
+          floor_area: objectData.floorArea ? parseFloat(objectData.floorArea) : null,
           height: objectData.height ? parseFloat(objectData.height) : null,
           floors: objectData.floors ? parseInt(objectData.floors) : null,
+          volume: objectData.volume ? parseFloat(objectData.volume) : null,
+          outdoor_category: objectData.outdoorCategory,
+          building_category: objectData.buildingCategory,
           workplaces: objectData.workplaces ? parseInt(objectData.workplaces) : null,
           working_hours: objectData.workingHours,
           protection_systems: objectData.protectionSystems,
@@ -458,10 +486,16 @@ export default function Index() {
                 <p className="text-muted-foreground mt-2 text-sm">Система управления пожарной безопасностью</p>
               </div>
             </div>
-            <Badge variant="outline" className="text-sm px-4 py-2">
-              <Icon name="Database" size={16} className="mr-2" />
-              Статус: {Math.round(completionPercentage)}% заполнено
-            </Badge>
+            <div className="flex flex-col gap-2 items-end">
+              <Badge variant="outline" className="text-sm px-4 py-2">
+                <Icon name="Database" size={16} className="mr-2" />
+                Статус: {Math.round(completionPercentage)}% заполнено
+              </Badge>
+              <Badge variant="outline" className="text-sm px-4 py-2">
+                <Icon name="CheckSquare" size={16} className="mr-2" />
+                Задачи: 38 пунктов чек-листа
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
@@ -557,6 +591,36 @@ export default function Index() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="location">Место нахождения объекта защиты</Label>
+                      <Input
+                        id="location"
+                        value={objectData.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        placeholder="Корпус, здание, участок"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fireResistance">Степень огнестойкости</Label>
+                      <Input
+                        id="fireResistance"
+                        value={objectData.fireResistance}
+                        onChange={(e) => handleInputChange('fireResistance', e.target.value)}
+                        placeholder="Например: I, II, III, IV, V"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="structuralFireHazard">Класс конструктивной пожарной опасности</Label>
+                      <Input
+                        id="structuralFireHazard"
+                        value={objectData.structuralFireHazard}
+                        onChange={(e) => handleInputChange('structuralFireHazard', e.target.value)}
+                        placeholder="Например: С0, С1, С2, С3"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="area">Площадь (м²)</Label>
                       <Input
                         id="area"
@@ -579,13 +643,55 @@ export default function Index() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="floors">Этажность</Label>
+                      <Label htmlFor="floorArea">Площадь этажа в пределах пожарного отсека здания (м²)</Label>
+                      <Input
+                        id="floorArea"
+                        type="number"
+                        value={objectData.floorArea}
+                        onChange={(e) => handleInputChange('floorArea', e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="floors">Количество этажей</Label>
                       <Input
                         id="floors"
                         type="number"
                         value={objectData.floors}
                         onChange={(e) => handleInputChange('floors', e.target.value)}
                         placeholder="0"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="volume">Объем здания (м³)</Label>
+                      <Input
+                        id="volume"
+                        type="number"
+                        value={objectData.volume}
+                        onChange={(e) => handleInputChange('volume', e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="outdoorCategory">Категория наружных установок по пожарной опасности</Label>
+                      <Input
+                        id="outdoorCategory"
+                        value={objectData.outdoorCategory}
+                        onChange={(e) => handleInputChange('outdoorCategory', e.target.value)}
+                        placeholder="Например: Ан, Бн, Вн"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="buildingCategory">Категория зданий</Label>
+                      <Input
+                        id="buildingCategory"
+                        value={objectData.buildingCategory}
+                        onChange={(e) => handleInputChange('buildingCategory', e.target.value)}
+                        placeholder="Например: А, Б, В1-В4, Г, Д"
                       />
                     </div>
 
