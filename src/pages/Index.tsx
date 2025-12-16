@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +9,8 @@ import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import JournalSection from '@/components/JournalSection';
 import { useToast } from '@/hooks/use-toast';
+
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 interface ObjectData {
   name: string;
@@ -25,12 +25,26 @@ interface ObjectData {
   protectionSystems: string;
 }
 
-const journalSections = [
+const mainSections = [
+  { id: 'order', icon: 'FileText', title: 'Приказ о назначении ответственного за ПБ', color: 'bg-orange-500' },
+  { id: 'instructions', icon: 'BookOpen', title: 'Инструкции о мерах пожарной безопасности', color: 'bg-blue-500' },
+  { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-orange-500' },
+  { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-blue-500' },
+  { id: 'drills', icon: 'Users', title: 'Тренировки по эвакуации', color: 'bg-orange-500' },
+  { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-blue-500' },
+  { id: 'documentation', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-orange-500' },
+  { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-blue-500' },
+  { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-orange-500' },
+  { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-blue-500' },
+  { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-orange-500' },
+];
+
+const journalSubsections = [
   {
     id: 'aups',
     icon: 'Radio',
-    title: 'Раздел I. АУПС (Автоматическая установка пожарной сигнализации)',
-    color: 'bg-orange-500',
+    title: 'I. АУПС',
+    fullTitle: 'Раздел I. АУПС (Автоматическая установка пожарной сигнализации)',
     headerFields: [
       { key: 'installation_type', label: 'Тип установки (адресная/безадресная)', type: 'text' },
       { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
@@ -45,8 +59,8 @@ const journalSections = [
   {
     id: 'soue',
     icon: 'Bell',
-    title: 'Раздел II. СОУЭ (Система оповещения и управления эвакуацией)',
-    color: 'bg-blue-500',
+    title: 'II. СОУЭ',
+    fullTitle: 'Раздел II. СОУЭ (Система оповещения и управления эвакуацией)',
     headerFields: [
       { key: 'installation_type', label: 'Тип установки (1-5)', type: 'text' },
       { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
@@ -61,8 +75,8 @@ const journalSections = [
   {
     id: 'smoke_ventilation',
     icon: 'Wind',
-    title: 'Раздел III. Системы противодымной вентиляции',
-    color: 'bg-orange-500',
+    title: 'III. Противодымная вентиляция',
+    fullTitle: 'Раздел III. Системы противодымной вентиляции',
     headerFields: [
       { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
     ],
@@ -76,8 +90,8 @@ const journalSections = [
   {
     id: 'aupt',
     icon: 'Droplet',
-    title: 'Раздел IV. АУПТ (Автоматическая установка пожаротушения)',
-    color: 'bg-blue-500',
+    title: 'IV. АУПТ',
+    fullTitle: 'Раздел IV. АУПТ (Автоматическая установка пожаротушения)',
     headerFields: [
       { key: 'installation_type', label: 'Тип установки', type: 'text' },
       { key: 'commissioning_date', label: 'Дата ввода в эксплуатацию', type: 'date' },
@@ -92,145 +106,145 @@ const journalSections = [
   {
     id: 'fire_extinguishers',
     icon: 'Zap',
-    title: 'Раздел V. Учет наличия, осмотра и перезарядки огнетушителей',
-    color: 'bg-orange-500',
+    title: 'V. Огнетушители',
+    fullTitle: 'Раздел V. Учет наличия, осмотра и перезарядки огнетушителей',
     fields: [
-      { key: 'brand', label: 'Марка огнетушителя' },
-      { key: 'assigned_number', label: 'Присвоенный номер' },
-      { key: 'commissioning_date', label: 'Дата введения в эксплуатацию', type: 'date' },
+      { key: 'brand', label: 'Марка' },
+      { key: 'assigned_number', label: 'Номер' },
+      { key: 'commissioning_date', label: 'Дата ввода', type: 'date' },
       { key: 'installation_location', label: 'Место установки' },
-      { key: 'initial_parameters', label: 'Параметры при осмотре', type: 'textarea' },
-      { key: 'inspection_dates', label: 'Дата осмотра, замечания' },
-      { key: 'maintenance_date', label: 'Дата ТО со вскрытием', type: 'date' },
+      { key: 'initial_parameters', label: 'Параметры', type: 'textarea' },
+      { key: 'inspection_dates', label: 'Даты осмотров' },
+      { key: 'maintenance_date', label: 'Дата ТО', type: 'date' },
       { key: 'recharge_date', label: 'Дата перезарядки', type: 'date' },
-      { key: 'recharge_organization', label: 'Организация, проводившая перезарядку' },
+      { key: 'recharge_organization', label: 'Организация' },
       { key: 'responsible_person', label: 'Ответственное лицо' },
     ],
   },
   {
     id: 'fire_blankets',
     icon: 'ShieldCheck',
-    title: 'Раздел VI. Проверка покрывал для изоляции очага возгорания',
-    color: 'bg-blue-500',
+    title: 'VI. Покрывала',
+    fullTitle: 'Раздел VI. Проверка покрывал для изоляции очага возгорания',
     fields: [
       { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'location_info', label: 'Место размещения, количество, размер', type: 'textarea' },
-      { key: 'inspection_result', label: 'Результат проверки, замечания', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'location_info', label: 'Место, количество, размер', type: 'textarea' },
+      { key: 'inspection_result', label: 'Результат проверки', type: 'textarea' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'fire_protection',
     icon: 'Shield',
-    title: 'Раздел VII. Проверка состояния огнезащитных покрытий',
-    color: 'bg-orange-500',
+    title: 'VII. Огнезащита',
+    fullTitle: 'Раздел VII. Проверка состояния огнезащитных покрытий',
     fields: [
       { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'act_number', label: 'Номер акта (протокола)' },
-      { key: 'structure_info', label: 'Наименование конструкций. Вид огнезащиты.', type: 'textarea' },
+      { key: 'act_number', label: 'Номер акта' },
+      { key: 'structure_info', label: 'Конструкции. Вид огнезащиты.', type: 'textarea' },
       { key: 'work_type', label: 'Вид работ. Результат.', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'fire_dampers',
     icon: 'Box',
-    title: 'Раздел VIII. Проверка огнезадерживающих устройств',
-    color: 'bg-blue-500',
+    title: 'VIII. Огнезадерживающие устройства',
+    fullTitle: 'Раздел VIII. Проверка огнезадерживающих устройств',
     fields: [
-      { key: 'device_name', label: 'Наименование устройства, место установки', type: 'textarea' },
+      { key: 'device_name', label: 'Устройство, место установки', type: 'textarea' },
       { key: 'inspection_dates', label: 'Дата проверки' },
-      { key: 'inspection_result', label: 'Результаты проверки', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'inspection_result', label: 'Результаты', type: 'textarea' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'indoor_hydrants',
     icon: 'Pipette',
-    title: 'Раздел IX. Проверка водоотдачи внутренних пожарных кранов',
-    color: 'bg-orange-500',
+    title: 'IX. Внутренние пожарные краны',
+    fullTitle: 'Раздел IX. Проверка водоотдачи внутренних пожарных кранов',
     fields: [
-      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'hydrant_numbers', label: 'Количество и номера задействованных ПК' },
-      { key: 'required_water_flow', label: 'Нормативное значение водоотдачи', type: 'textarea' },
-      { key: 'flow_result', label: 'Результаты проверки водоотдачи' },
-      { key: 'completeness_result', label: 'Укомплектованность ПК', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'inspection_date', label: 'Дата', type: 'date' },
+      { key: 'hydrant_numbers', label: 'Номера ПК' },
+      { key: 'required_water_flow', label: 'Норматив', type: 'textarea' },
+      { key: 'flow_result', label: 'Результат' },
+      { key: 'completeness_result', label: 'Укомплектованность', type: 'textarea' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'outdoor_hydrants',
     icon: 'Wrench',
-    title: 'Раздел X. Проверка наружных водопроводов противопожарного водоснабжения',
-    color: 'bg-blue-500',
+    title: 'X. Наружные гидранты',
+    fullTitle: 'Раздел X. Проверка наружных водопроводов',
     fields: [
-      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'hydrant_info', label: 'Наименование водопровода, номера гидрантов', type: 'textarea' },
-      { key: 'required_water_flow', label: 'Нормативное значение водоотдачи', type: 'textarea' },
-      { key: 'flow_result', label: 'Результаты проверки' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'inspection_date', label: 'Дата', type: 'date' },
+      { key: 'hydrant_info', label: 'Водопровод, номера гидрантов', type: 'textarea' },
+      { key: 'required_water_flow', label: 'Норматив', type: 'textarea' },
+      { key: 'flow_result', label: 'Результат' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'valves_pumps',
     icon: 'Settings',
-    title: 'Раздел XI. Проверка задвижек и пожарных насосных агрегатов',
-    color: 'bg-orange-500',
+    title: 'XI. Задвижки и насосы',
+    fullTitle: 'Раздел XI. Проверка задвижек и пожарных насосных агрегатов',
     fields: [
-      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'equipment_info', label: 'Наименование устройств и насосов, место установки', type: 'textarea' },
-      { key: 'inspection_result', label: 'Результаты проверки работоспособности', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'inspection_date', label: 'Дата', type: 'date' },
+      { key: 'equipment_info', label: 'Устройства, место', type: 'textarea' },
+      { key: 'inspection_result', label: 'Результаты', type: 'textarea' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
   {
     id: 'hose_rolling',
     icon: 'RotateCw',
-    title: 'Раздел XII. Перекатка пожарных рукавов',
-    color: 'bg-blue-500',
+    title: 'XII. Перекатка рукавов',
+    fullTitle: 'Раздел XII. Перекатка пожарных рукавов',
     fields: [
-      { key: 'rolling_date', label: 'Дата перекатки', type: 'date' },
-      { key: 'hose_count', label: 'Количество пожарных рукавов', type: 'number' },
-      { key: 'completion_note', label: 'Отметка о проведении перекатки' },
-      { key: 'executor', label: 'Перекатка проведена (должность, Ф.И.О., организация)' },
+      { key: 'rolling_date', label: 'Дата', type: 'date' },
+      { key: 'hose_count', label: 'Количество', type: 'number' },
+      { key: 'completion_note', label: 'Отметка' },
+      { key: 'executor', label: 'Выполнил' },
     ],
   },
   {
     id: 'ladder_tests',
     icon: 'Layers',
-    title: 'Раздел XIII. Испытания пожарных лестниц и ограждений',
-    color: 'bg-orange-500',
+    title: 'XIII. Испытания лестниц',
+    fullTitle: 'Раздел XIII. Испытания пожарных лестниц и ограждений',
     fields: [
-      { key: 'test_date', label: 'Дата испытаний', type: 'date' },
+      { key: 'test_date', label: 'Дата', type: 'date' },
       { key: 'protocol_number', label: 'Номер протокола' },
-      { key: 'structure_name', label: 'Наименование испытываемых конструкций' },
-      { key: 'test_result', label: 'Результаты испытаний', type: 'textarea' },
-      { key: 'inspector', label: 'Испытание проведены (должность, Ф.И.О., организация)' },
+      { key: 'structure_name', label: 'Конструкции' },
+      { key: 'test_result', label: 'Результаты', type: 'textarea' },
+      { key: 'inspector', label: 'Выполнил' },
     ],
   },
   {
     id: 'ventilation_cleaning',
     icon: 'Filter',
-    title: 'Раздел XIV. Очистка вентиляционных систем',
-    color: 'bg-blue-500',
+    title: 'XIV. Очистка вентиляции',
+    fullTitle: 'Раздел XIV. Очистка вентиляционных систем',
     fields: [
-      { key: 'equipment_info', label: 'Наименование систем, место установки с указанием категории', type: 'textarea' },
-      { key: 'work_date', label: 'Дата проведения работ', type: 'date' },
+      { key: 'equipment_info', label: 'Системы, место, категория', type: 'textarea' },
+      { key: 'work_date', label: 'Дата', type: 'date' },
       { key: 'act_number', label: 'Номер акта' },
-      { key: 'work_description', label: 'Наименование проведенных работ', type: 'textarea' },
-      { key: 'executor', label: 'Ответственный исполнитель (должность, Ф.И.О., организация)' },
+      { key: 'work_description', label: 'Работы', type: 'textarea' },
+      { key: 'executor', label: 'Выполнил' },
     ],
   },
   {
     id: 'ppe',
     icon: 'Glasses',
-    title: 'Раздел XV. Проверка средств индивидуальной защиты',
-    color: 'bg-orange-500',
+    title: 'XV. СИЗ',
+    fullTitle: 'Раздел XV. Проверка средств индивидуальной защиты',
     fields: [
-      { key: 'equipment_info', label: 'Наименование СИЗ, количество, место размещения', type: 'textarea' },
-      { key: 'inspection_date', label: 'Дата проверки', type: 'date' },
-      { key: 'inspection_result', label: 'Результаты проверки', type: 'textarea' },
-      { key: 'inspector', label: 'Проверка проведена (должность, Ф.И.О., организация)' },
+      { key: 'equipment_info', label: 'СИЗ, количество, место', type: 'textarea' },
+      { key: 'inspection_date', label: 'Дата', type: 'date' },
+      { key: 'inspection_result', label: 'Результаты', type: 'textarea' },
+      { key: 'inspector', label: 'Проверку провел' },
     ],
   },
 ];
@@ -250,6 +264,7 @@ export default function Index() {
   });
 
   const [activeSection, setActiveSection] = useState<string>('characteristics');
+  const [activeJournalTab, setActiveJournalTab] = useState<string>('aups');
   const [journalData, setJournalData] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -452,7 +467,7 @@ export default function Index() {
                   <Icon name="Settings" size={16} className="mr-2" />
                   Характеристики объекта
                 </Button>
-                {journalSections.map((section) => (
+                {mainSections.map((section) => (
                   <Button
                     key={section.id}
                     variant={activeSection === section.id ? 'default' : 'ghost'}
@@ -638,22 +653,71 @@ export default function Index() {
                   </Button>
                 </CardContent>
               </Card>
+            ) : activeSection === 'journal' ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded bg-orange-500 flex items-center justify-center">
+                      <Icon name="Clipboard" className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <CardTitle>Журнал эксплуатации систем противопожарной защиты</CardTitle>
+                      <CardDescription>15 разделов учета работ по техническому обслуживанию</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs value={activeJournalTab} onValueChange={setActiveJournalTab}>
+                    <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-2">
+                      {journalSubsections.map((subsection) => (
+                        <TabsTrigger
+                          key={subsection.id}
+                          value={subsection.id}
+                          className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                        >
+                          <Icon name={subsection.icon as any} size={12} className="mr-1" />
+                          {subsection.title}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    {journalSubsections.map((subsection) => (
+                      <TabsContent key={subsection.id} value={subsection.id} className="mt-6">
+                        <JournalSection
+                          sectionId={subsection.id}
+                          title={subsection.fullTitle}
+                          icon={subsection.icon}
+                          color="bg-orange-500"
+                          fields={subsection.fields}
+                          headerFields={subsection.headerFields}
+                          onSave={(data) => handleSectionSave(subsection.id, data)}
+                          data={journalData[subsection.id] || []}
+                        />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </CardContent>
+              </Card>
             ) : (
-              journalSections
-                .filter(section => section.id === activeSection)
-                .map(section => (
-                  <JournalSection
-                    key={section.id}
-                    sectionId={section.id}
-                    title={section.title}
-                    icon={section.icon}
-                    color={section.color}
-                    fields={section.fields}
-                    headerFields={section.headerFields}
-                    onSave={(data) => handleSectionSave(section.id, data)}
-                    data={journalData[section.id] || []}
-                  />
-                ))
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded ${mainSections.find(s => s.id === activeSection)?.color} flex items-center justify-center`}>
+                      <Icon name={mainSections.find(s => s.id === activeSection)?.icon as any} className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <CardTitle>{mainSections.find(s => s.id === activeSection)?.title}</CardTitle>
+                      <CardDescription>Раздел в разработке</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Icon name="Construction" size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Этот раздел находится в разработке</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
