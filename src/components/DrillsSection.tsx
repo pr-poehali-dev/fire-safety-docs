@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,32 @@ interface Drill {
   documents: File[];
 }
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function DrillsSection() {
   const [drills, setDrills] = useState<Drill[]>([]);
+
+  useEffect(() => {
+    loadDrills();
+  }, []);
+
+  const loadDrills = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=drills`);
+      const data = await response.json();
+      const loadedDrills = data.map((item: any) => ({
+        date: item.drill_date,
+        order: item.order_number || '',
+        purpose: item.purpose || '',
+        leader: item.leader || '',
+        participants: item.participants || '',
+        documents: [],
+      }));
+      setDrills(loadedDrills);
+    } catch (error) {
+      console.error('Error loading drills:', error);
+    }
+  };
   const [newDrill, setNewDrill] = useState<Drill>({
     date: '',
     order: '',
@@ -36,17 +60,39 @@ export default function DrillsSection() {
     setNewDrill((prev) => ({ ...prev, documents: [...prev.documents, ...files] }));
   };
 
-  const handleAddDrill = () => {
+  const handleAddDrill = async () => {
     if (newDrill.date && newDrill.purpose) {
-      setDrills((prev) => [...prev, newDrill]);
-      setNewDrill({
-        date: '',
-        order: '',
-        purpose: '',
-        leader: '',
-        participants: '',
-        documents: [],
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'drills',
+            drill_date: newDrill.date,
+            order_number: newDrill.order,
+            purpose: newDrill.purpose,
+            leader: newDrill.leader,
+            participants: newDrill.participants,
+          }),
+        });
+        
+        if (response.ok) {
+          setDrills((prev) => [...prev, newDrill]);
+          setNewDrill({
+            date: '',
+            order: '',
+            purpose: '',
+            leader: '',
+            participants: '',
+            documents: [],
+          });
+          alert('Тренировка успешно добавлена в базу данных');
+          loadDrills();
+        }
+      } catch (error) {
+        console.error('Error saving drill:', error);
+        alert('Ошибка при сохранении тренировки');
+      }
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,16 +15,60 @@ const documentSubsections = [
   { id: 'journal', icon: 'Book', title: 'Журнал инструктажей' },
 ];
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function DocumentationSection() {
   const [activeTab, setActiveTab] = useState('order');
   const [files, setFiles] = useState<Record<string, File[]>>({});
 
-  const handleFileUpload = (subsectionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    loadDocumentationFiles();
+  }, []);
+
+  const loadDocumentationFiles = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=documentation_files`);
+      const data = await response.json();
+      const groupedFiles: Record<string, any[]> = {};
+      data.forEach((item: any) => {
+        if (!groupedFiles[item.subsection_id]) {
+          groupedFiles[item.subsection_id] = [];
+        }
+        groupedFiles[item.subsection_id].push({
+          name: item.file_name,
+          size: item.file_size || 0,
+        });
+      });
+    } catch (error) {
+      console.error('Error loading documentation files:', error);
+    }
+  };
+
+  const handleFileUpload = async (subsectionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
     setFiles((prev) => ({
       ...prev,
       [subsectionId]: [...(prev[subsectionId] || []), ...uploadedFiles],
     }));
+    
+    try {
+      for (const file of uploadedFiles) {
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'documentation_files',
+            subsection_id: subsectionId,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+          }),
+        });
+      }
+      alert('Файлы успешно загружены в базу данных');
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    }
   };
 
   const handleFileRemove = (subsectionId: string, index: number) => {

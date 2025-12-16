@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,32 @@ interface RoomCalculation {
   electrical: string;
 }
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function CalculationsSection() {
   const [rooms, setRooms] = useState<RoomCalculation[]>([]);
+
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=fire_hazard_calculations`);
+      const data = await response.json();
+      const loadedRooms = data.map((item: any) => ({
+        name: item.room_name || '',
+        area: item.area?.toString() || '',
+        height: item.height?.toString() || '',
+        lvzh_gzh: item.lvzh_gzh || '',
+        specific_load: item.specific_load || '',
+        electrical: item.electrical || '',
+      }));
+      setRooms(loadedRooms);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+    }
+  };
   const [newRoom, setNewRoom] = useState<RoomCalculation>({
     name: '',
     area: '',
@@ -31,17 +55,40 @@ export default function CalculationsSection() {
     setNewRoom((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddRoom = () => {
+  const handleAddRoom = async () => {
     if (newRoom.name && newRoom.area) {
-      setRooms((prev) => [...prev, newRoom]);
-      setNewRoom({
-        name: '',
-        area: '',
-        height: '',
-        lvzh_gzh: '',
-        specific_load: '',
-        electrical: '',
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'fire_hazard_calculations',
+            room_name: newRoom.name,
+            area: parseFloat(newRoom.area) || null,
+            height: parseFloat(newRoom.height) || null,
+            lvzh_gzh: newRoom.lvzh_gzh,
+            specific_load: newRoom.specific_load,
+            electrical: newRoom.electrical,
+          }),
+        });
+        
+        if (response.ok) {
+          setRooms((prev) => [...prev, newRoom]);
+          setNewRoom({
+            name: '',
+            area: '',
+            height: '',
+            lvzh_gzh: '',
+            specific_load: '',
+            electrical: '',
+          });
+          alert('Расчет успешно добавлен в базу данных');
+          loadRooms();
+        }
+      } catch (error) {
+        console.error('Error saving room:', error);
+        alert('Ошибка при сохранении расчета');
+      }
     }
   };
 

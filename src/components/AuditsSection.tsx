@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,32 @@ interface Audit {
   responsible: string;
 }
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function AuditsSection() {
   const [audits, setAudits] = useState<Audit[]>([]);
+
+  useEffect(() => {
+    loadAudits();
+  }, []);
+
+  const loadAudits = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=audits`);
+      const data = await response.json();
+      const loadedAudits = data.map((item: any) => ({
+        date: item.audit_date,
+        inspector: item.inspector || '',
+        violations: item.violations_count?.toString() || '0',
+        deadline: item.deadline || '',
+        completed: item.completed_count?.toString() || '0',
+        responsible: '',
+      }));
+      setAudits(loadedAudits);
+    } catch (error) {
+      console.error('Error loading audits:', error);
+    }
+  };
   const [newAudit, setNewAudit] = useState<Audit>({
     date: '',
     inspector: '',
@@ -31,17 +55,40 @@ export default function AuditsSection() {
     setNewAudit((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddAudit = () => {
+  const handleAddAudit = async () => {
     if (newAudit.date && newAudit.inspector) {
-      setAudits((prev) => [...prev, newAudit]);
-      setNewAudit({
-        date: '',
-        inspector: '',
-        violations: '',
-        deadline: '',
-        completed: '',
-        responsible: '',
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'audits',
+            audit_date: newAudit.date,
+            inspector: newAudit.inspector,
+            violations_count: parseInt(newAudit.violations) || 0,
+            completed_count: parseInt(newAudit.completed) || 0,
+            deadline: newAudit.deadline || null,
+            status: 'in_progress',
+          }),
+        });
+        
+        if (response.ok) {
+          setAudits((prev) => [...prev, newAudit]);
+          setNewAudit({
+            date: '',
+            inspector: '',
+            violations: '',
+            deadline: '',
+            completed: '',
+            responsible: '',
+          });
+          alert('Проверка успешно добавлена в базу данных');
+          loadAudits();
+        }
+      } catch (error) {
+        console.error('Error saving audit:', error);
+        alert('Ошибка при сохранении проверки');
+      }
     }
   };
 

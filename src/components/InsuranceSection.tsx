@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,8 +13,30 @@ interface Insurance {
   amount: string;
 }
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function InsuranceSection() {
   const [insurances, setInsurances] = useState<Insurance[]>([]);
+
+  useEffect(() => {
+    loadInsurances();
+  }, []);
+
+  const loadInsurances = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=insurance_policies`);
+      const data = await response.json();
+      const loadedInsurances = data.map((item: any) => ({
+        policyNumber: item.policy_number || '',
+        organization: item.organization || '',
+        insured: item.insured_object || '',
+        amount: item.amount?.toString() || '',
+      }));
+      setInsurances(loadedInsurances);
+    } catch (error) {
+      console.error('Error loading insurances:', error);
+    }
+  };
   const [newInsurance, setNewInsurance] = useState<Insurance>({
     policyNumber: '',
     organization: '',
@@ -26,15 +48,36 @@ export default function InsuranceSection() {
     setNewInsurance((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddInsurance = () => {
+  const handleAddInsurance = async () => {
     if (newInsurance.policyNumber && newInsurance.organization) {
-      setInsurances((prev) => [...prev, newInsurance]);
-      setNewInsurance({
-        policyNumber: '',
-        organization: '',
-        insured: '',
-        amount: '',
-      });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'insurance_policies',
+            policy_number: newInsurance.policyNumber,
+            organization: newInsurance.organization,
+            insured_object: newInsurance.insured,
+            amount: parseFloat(newInsurance.amount) || null,
+          }),
+        });
+        
+        if (response.ok) {
+          setInsurances((prev) => [...prev, newInsurance]);
+          setNewInsurance({
+            policyNumber: '',
+            organization: '',
+            insured: '',
+            amount: '',
+          });
+          alert('Страховой полис успешно добавлен в базу данных');
+          loadInsurances();
+        }
+      } catch (error) {
+        console.error('Error saving insurance:', error);
+        alert('Ошибка при сохранении полиса');
+      }
     }
   };
 

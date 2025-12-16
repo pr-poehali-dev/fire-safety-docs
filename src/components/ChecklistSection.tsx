@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,6 +43,8 @@ const checklistTemplates = [
   { id: 'target', name: 'Целевая проверка', description: 'Проверка по конкретной теме', icon: 'Target' },
 ];
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function ChecklistSection() {
   const [activeTab, setActiveTab] = useState('current');
   const [checklistData, setChecklistData] = useState<Record<string, ChecklistItem>>(
@@ -55,11 +57,55 @@ export default function ChecklistSection() {
   );
   const [history, setHistory] = useState<any[]>([]);
 
-  const handleStatusChange = (itemId: string, status: 'yes' | 'no') => {
+  useEffect(() => {
+    loadChecklistData();
+  }, []);
+
+  const loadChecklistData = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=checklist_items`);
+      const data = await response.json();
+      if (data.length > 0) {
+        const loadedData: Record<string, ChecklistItem> = {};
+        data.forEach((item: any) => {
+          const checklistItem = checklistItems.find(ci => ci.id === item.item_id);
+          if (checklistItem) {
+            loadedData[item.item_id] = {
+              id: item.item_id,
+              text: checklistItem.text,
+              status: item.status,
+              photos: [],
+              documents: [],
+            };
+          }
+        });
+        setChecklistData(prev => ({ ...prev, ...loadedData }));
+      }
+    } catch (error) {
+      console.error('Error loading checklist:', error);
+    }
+  };
+
+  const handleStatusChange = async (itemId: string, status: 'yes' | 'no') => {
     setChecklistData((prev) => ({
       ...prev,
       [itemId]: { ...prev[itemId], status },
     }));
+    
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'checklist_items',
+          item_id: itemId,
+          status: status,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error('Error saving checklist item:', error);
+    }
   };
 
   const handleFileUpload = (itemId: string, type: 'photos' | 'documents', event: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,13 +119,33 @@ export default function ChecklistSection() {
     }));
   };
 
-  const handleSaveChecklist = () => {
-    const timestamp = new Date().toISOString();
-    setHistory((prev) => [
-      { id: timestamp, date: timestamp, data: { ...checklistData } },
-      ...prev,
-    ]);
-    alert('Чек-лист сохранен в историю');
+  const handleSaveChecklist = async () => {
+    try {
+      for (const [itemId, itemData] of Object.entries(checklistData)) {
+        if (itemData.status !== 'not_set') {
+          await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table: 'checklist_items',
+              item_id: itemId,
+              status: itemData.status,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+        }
+      }
+      
+      const timestamp = new Date().toISOString();
+      setHistory((prev) => [
+        { id: timestamp, date: timestamp, data: { ...checklistData } },
+        ...prev,
+      ]);
+      alert('Чек-лист успешно сохранен в базу данных');
+    } catch (error) {
+      console.error('Error saving checklist:', error);
+      alert('Ошибка при сохранении чек-листа');
+    }
   };
 
   const completedCount = Object.values(checklistData).filter((item) => item.status === 'yes').length;

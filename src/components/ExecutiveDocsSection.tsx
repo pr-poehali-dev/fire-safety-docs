@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,29 @@ interface ExecutiveDoc {
   file?: File;
 }
 
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+
 export default function ExecutiveDocsSection() {
   const [docs, setDocs] = useState<ExecutiveDoc[]>([]);
+
+  useEffect(() => {
+    loadDocs();
+  }, []);
+
+  const loadDocs = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=executive_documents`);
+      const data = await response.json();
+      const loadedDocs = data.map((item: any) => ({
+        name: item.document_name || '',
+        date: item.document_date || '',
+        file: undefined,
+      }));
+      setDocs(loadedDocs);
+    } catch (error) {
+      console.error('Error loading docs:', error);
+    }
+  };
   const [newDoc, setNewDoc] = useState<ExecutiveDoc>({ name: '', date: '', file: undefined });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,10 +44,30 @@ export default function ExecutiveDocsSection() {
     }
   };
 
-  const handleAddDoc = () => {
+  const handleAddDoc = async () => {
     if (newDoc.name && newDoc.date) {
-      setDocs((prev) => [...prev, newDoc]);
-      setNewDoc({ name: '', date: '', file: undefined });
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'executive_documents',
+            document_name: newDoc.name,
+            document_date: newDoc.date,
+            file_name: newDoc.file?.name || null,
+          }),
+        });
+        
+        if (response.ok) {
+          setDocs((prev) => [...prev, newDoc]);
+          setNewDoc({ name: '', date: '', file: undefined });
+          alert('Документ успешно добавлен в базу данных');
+          loadDocs();
+        }
+      } catch (error) {
+        console.error('Error saving doc:', error);
+        alert('Ошибка при сохранении документа');
+      }
     }
   };
 
