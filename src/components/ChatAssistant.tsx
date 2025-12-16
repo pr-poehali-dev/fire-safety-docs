@@ -95,13 +95,19 @@ const ChatAssistant = () => {
 
   if (!isOpen) {
     return (
-      <Button
+      <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-        size="icon"
+        className="fixed bottom-6 right-6 h-20 w-20 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform duration-300 bg-transparent border-0 p-0"
       >
-        <Icon name="MessageCircle" size={24} />
-      </Button>
+        <img 
+          src="https://cdn.poehali.dev/files/EocDsQ33PQA.jpg" 
+          alt="Помощник пожарной безопасности" 
+          className="h-full w-full object-cover rounded-full animate-bounce"
+          style={{
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))'
+          }}
+        />
+      </button>
     );
   }
 
@@ -110,8 +116,12 @@ const ChatAssistant = () => {
       <CardHeader className="border-b bg-primary text-primary-foreground flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon name="Bot" size={20} />
-            <CardTitle className="text-base">Виртуальный помощник</CardTitle>
+            <img 
+              src="https://cdn.poehali.dev/files/EocDsQ33PQA.jpg" 
+              alt="Помощник" 
+              className="h-8 w-8 rounded-full object-cover"
+            />
+            <CardTitle className="text-base">Помощник пожарной безопасности</CardTitle>
           </div>
           <Button
             variant="ghost"
