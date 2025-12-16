@@ -19,6 +19,8 @@ import DeclarationSection from '@/components/DeclarationSection';
 import InsuranceSection from '@/components/InsuranceSection';
 import NotificationsSection from '@/components/NotificationsSection';
 import ExportSection from '@/components/ExportSection';
+import FAQSection from '@/components/FAQSection';
+import ChatAssistant from '@/components/ChatAssistant';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -55,6 +57,7 @@ const mainSections = [
   { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-blue-500' },
   { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-orange-500' },
   { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-blue-500' },
+  { id: 'faq', icon: 'HelpCircle', title: 'Вопросы и ответы', color: 'bg-purple-500' },
 ];
 
 const journalSubsections = [
@@ -471,7 +474,7 @@ export default function Index() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src="https://cdn.poehali.dev/files/Рисунок 1.jpg" 
+                src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/ffebd29b-b01f-4113-939a-fd1e8779c02a.jpg" 
                 alt="Код безопасности РУСАЛ" 
                 className="h-24 w-auto object-contain brightness-110 contrast-125 saturate-110"
                 style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}
@@ -801,6 +804,8 @@ export default function Index() {
               <DeclarationSection objectData={objectData} />
             ) : activeSection === 'insurance' ? (
               <InsuranceSection />
+            ) : activeSection === 'faq' ? (
+              <FAQSection />
             ) : (
               <Card>
                 <CardHeader>
@@ -825,6 +830,8 @@ export default function Index() {
           </div>
         </div>
       </div>
+      
+      <ChatAssistant />
     </div>
   );
 }
