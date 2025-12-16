@@ -443,9 +443,9 @@ export default function Index() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/6d8b84fb-7f02-4c9f-9e0a-1f75017c83af.jpg" 
-                alt="Fire Safety Logo" 
-                className="w-20 h-20 object-contain rounded-lg"
+                src="https://cdn.poehali.dev/files/Рисунок 1.jpg" 
+                alt="Код безопасности РУСАЛ" 
+                className="h-24 w-auto object-contain"
               />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
