@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect } from 'react';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AssessmentDashboard() {
   const [isVisible, setIsVisible] = useState(false);
@@ -39,6 +40,40 @@ export default function AssessmentDashboard() {
     { task: 'Проверка АУПС', dueDate: '2025-01-20', priority: 'medium', daysLeft: 34 },
     { task: 'Тренировка по эвакуации', dueDate: '2025-02-01', priority: 'high', daysLeft: 46 },
     { task: 'Проверка внутренних ПК', dueDate: '2025-02-10', priority: 'low', daysLeft: 55 },
+  ];
+
+  const monthlyAlertsData = [
+    { month: 'Июль', aups: 2, soue: 1, aupt: 0, smoke: 1, total: 4 },
+    { month: 'Август', aups: 1, soue: 0, aupt: 0, smoke: 2, total: 3 },
+    { month: 'Сентябрь', aups: 3, soue: 2, aupt: 1, smoke: 1, total: 7 },
+    { month: 'Октябрь', aups: 1, soue: 1, aupt: 0, smoke: 0, total: 2 },
+    { month: 'Ноябрь', aups: 2, soue: 0, aupt: 0, smoke: 1, total: 3 },
+    { month: 'Декабрь', aups: 1, soue: 1, aupt: 0, smoke: 1, total: 3 },
+  ];
+
+  const complianceData = [
+    { name: 'Соблюдается', value: 85, color: '#22c55e' },
+    { name: 'Требует внимания', value: 12, color: '#eab308' },
+    { name: 'Критичные', value: 3, color: '#ef4444' },
+  ];
+
+  const weeklyResponseTimeData = [
+    { day: 'Пн', responseTime: 1.5, incidents: 0 },
+    { day: 'Вт', responseTime: 1.2, incidents: 1 },
+    { day: 'Ср', responseTime: 1.8, incidents: 0 },
+    { day: 'Чт', responseTime: 1.1, incidents: 0 },
+    { day: 'Пт', responseTime: 1.3, incidents: 1 },
+    { day: 'Сб', responseTime: 1.0, incidents: 0 },
+    { day: 'Вс', responseTime: 1.2, incidents: 1 },
+  ];
+
+  const systemUptimeData = [
+    { month: 'Июль', uptime: 99.2 },
+    { month: 'Август', uptime: 99.8 },
+    { month: 'Сентябрь', uptime: 98.5 },
+    { month: 'Октябрь', uptime: 99.9 },
+    { month: 'Ноябрь', uptime: 99.6 },
+    { month: 'Декабрь', uptime: 99.8 },
   ];
 
   const overallCompletion =
@@ -366,6 +401,161 @@ export default function AssessmentDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="BarChart3" size={20} className="text-orange-500" />
+                Срабатывания систем за 6 месяцев
+              </CardTitle>
+              <CardDescription>Статистика тревожных событий по системам</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyAlertsData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="aups" name="АУПС" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="soue" name="СОУЭ" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aupt" name="АУПТ" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="smoke" name="Противодымная" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="animate-in fade-in slide-in-from-right" style={{ animationDelay: '200ms' }}>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="PieChart" size={20} className="text-green-500" />
+                Распределение соответствия требованиям
+              </CardTitle>
+              <CardDescription>Текущее состояние объекта по категориям</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={complianceData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1000}
+                  >
+                    {complianceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '300ms' }}>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="Activity" size={20} className="text-purple-500" />
+                Время отклика за неделю
+              </CardTitle>
+              <CardDescription>Скорость реагирования на события (в секундах)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={weeklyResponseTimeData}>
+                  <defs>
+                    <linearGradient id="colorResponseTime" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="day" className="text-xs" />
+                  <YAxis className="text-xs" label={{ value: 'Секунды', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="responseTime" 
+                    name="Время отклика" 
+                    stroke="#8b5cf6" 
+                    fillOpacity={1} 
+                    fill="url(#colorResponseTime)" 
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="animate-in fade-in slide-in-from-right" style={{ animationDelay: '300ms' }}>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="TrendingUp" size={20} className="text-blue-500" />
+                Время работы систем (Uptime)
+              </CardTitle>
+              <CardDescription>Процент времени бесперебойной работы</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={systemUptimeData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis domain={[98, 100]} className="text-xs" label={{ value: '%', position: 'insideLeft', style: { fontSize: '12px' } }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="uptime" 
+                    name="Uptime" 
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                    dot={{ fill: '#10b981', r: 5 }}
+                    activeDot={{ r: 7 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       </CardContent>
     </Card>
   );
