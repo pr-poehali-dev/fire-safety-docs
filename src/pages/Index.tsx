@@ -28,7 +28,6 @@ interface ObjectData {
   functionalClass: string;
   commissioningDate: string;
   address: string;
-  location: string;
   fireResistance: string;
   structuralFireHazard: string;
   area: string;
@@ -274,7 +273,6 @@ export default function Index() {
     functionalClass: '',
     commissioningDate: '',
     address: '',
-    location: '',
     fireResistance: '',
     structuralFireHazard: '',
     area: '',
@@ -311,7 +309,6 @@ export default function Index() {
           functionalClass: latest.functional_class || '',
           commissioningDate: latest.commissioning_date || '',
           address: latest.address || '',
-          location: latest.location || '',
           fireResistance: latest.fire_resistance || '',
           structuralFireHazard: latest.structural_fire_hazard || '',
           area: latest.area?.toString() || '',
@@ -387,7 +384,6 @@ export default function Index() {
           functional_class: objectData.functionalClass,
           commissioning_date: objectData.commissioningDate || null,
           address: objectData.address,
-          location: objectData.location,
           fire_resistance: objectData.fireResistance,
           structural_fire_hazard: objectData.structuralFireHazard,
           area: objectData.area ? parseFloat(objectData.area) : null,
@@ -587,16 +583,6 @@ export default function Index() {
                         value={objectData.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
                         placeholder="Полный адрес объекта"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Место нахождения объекта защиты</Label>
-                      <Input
-                        id="location"
-                        value={objectData.location}
-                        onChange={(e) => handleInputChange('location', e.target.value)}
-                        placeholder="Корпус, здание, участок"
                       />
                     </div>
 

@@ -12,8 +12,8 @@
       "path": "/",
       "body": {
         "table": "object_characteristics",
-        "name": "Test Object",
-        "functional_class": "F1.1"
+        "name": "Тестовый объект",
+        "functional_class": "Ф1.1"
       },
       "expectedStatus": 201
     }
