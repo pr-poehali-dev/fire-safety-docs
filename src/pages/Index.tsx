@@ -441,12 +441,18 @@ export default function Index() {
       <div className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-                <Icon name="Flame" className="text-primary" size={32} />
-                Цифровизация пожарной безопасности
-              </h1>
-              <p className="text-muted-foreground mt-2 text-sm">Система управления пожарной безопасностью</p>
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/6d8b84fb-7f02-4c9f-9e0a-1f75017c83af.jpg" 
+                alt="Fire Safety Logo" 
+                className="w-20 h-20 object-contain rounded-lg"
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Цифровизация пожарной безопасности
+                </h1>
+                <p className="text-muted-foreground mt-2 text-sm">Система управления пожарной безопасностью</p>
+              </div>
             </div>
             <Badge variant="outline" className="text-sm px-4 py-2">
               <Icon name="Database" size={16} className="mr-2" />
