@@ -473,16 +473,15 @@ export default function Index() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="relative h-24 w-auto">
-                <img 
-                  src="https://cdn.poehali.dev/files/7eCGrXECMATKYFQkOfv3tGTPRcrxWQ6APZ2dTGv9.png" 
-                  alt="Код безопасности РУСАЛ" 
-                  className="h-full w-auto brightness-110 contrast-125 animate-in fade-in zoom-in duration-700"
-                  style={{ 
-                    filter: 'brightness(1.1) contrast(1.25) drop-shadow(0 2px 4px rgba(0,0,0,0.15))'
-                  }}
-                />
-              </div>
+              <img 
+                src="https://cdn.poehali.dev/files/7eCGrXECMATKYFQkOfv3tGTPRcrxWQ6APZ2dTGv9.png" 
+                alt="Код безопасности РУСАЛ" 
+                className="h-24 w-auto brightness-110 contrast-125 animate-in fade-in zoom-in duration-700"
+                style={{ 
+                  filter: 'brightness(1.1) contrast(1.25) drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+                  backgroundColor: 'transparent'
+                }}
+              />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
                   Цифровизация пожарной безопасности
