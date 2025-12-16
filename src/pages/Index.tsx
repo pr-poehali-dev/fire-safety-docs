@@ -474,10 +474,10 @@ export default function Index() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/ffebd29b-b01f-4113-939a-fd1e8779c02a.jpg" 
+                src="https://cdn.poehali.dev/files/Логотипjpg.jpg" 
                 alt="Код безопасности РУСАЛ" 
-                className="h-24 w-auto object-contain brightness-110 contrast-125 saturate-110"
-                style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}
+                className="h-24 w-auto object-contain brightness-125 contrast-150 saturate-125"
+                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
               />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
