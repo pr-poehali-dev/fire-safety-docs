@@ -473,7 +473,8 @@ export default function Index() {
               <img 
                 src="https://cdn.poehali.dev/files/Рисунок 1.jpg" 
                 alt="Код безопасности РУСАЛ" 
-                className="h-24 w-auto object-contain"
+                className="h-24 w-auto object-contain brightness-110 contrast-125 saturate-110"
+                style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))' }}
               />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
