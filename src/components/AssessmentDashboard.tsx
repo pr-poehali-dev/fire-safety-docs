@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -10,6 +11,8 @@ import jsPDF from 'jspdf';
 export default function AssessmentDashboard() {
   const [isVisible, setIsVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState('6');
+  const [systemFilter, setSystemFilter] = useState('all');
   const dashboardRef = useRef<HTMLDivElement>(null);
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
@@ -152,14 +155,25 @@ export default function AssessmentDashboard() {
     { task: 'Проверка внутренних ПК', dueDate: '2025-02-10', priority: 'low', daysLeft: 55 },
   ];
 
-  const monthlyAlertsData = [
+  const allMonthlyAlertsData = [
+    { month: 'Июнь', aups: 2, soue: 2, aupt: 1, smoke: 0, total: 5 },
     { month: 'Июль', aups: 2, soue: 1, aupt: 0, smoke: 1, total: 4 },
     { month: 'Август', aups: 1, soue: 0, aupt: 0, smoke: 2, total: 3 },
     { month: 'Сентябрь', aups: 3, soue: 2, aupt: 1, smoke: 1, total: 7 },
     { month: 'Октябрь', aups: 1, soue: 1, aupt: 0, smoke: 0, total: 2 },
     { month: 'Ноябрь', aups: 2, soue: 0, aupt: 0, smoke: 1, total: 3 },
     { month: 'Декабрь', aups: 1, soue: 1, aupt: 0, smoke: 1, total: 3 },
+    { month: 'Январь', aups: 0, soue: 1, aupt: 0, smoke: 0, total: 1 },
+    { month: 'Февраль', aups: 2, soue: 0, aupt: 1, smoke: 2, total: 5 },
+    { month: 'Март', aups: 1, soue: 2, aupt: 0, smoke: 1, total: 4 },
+    { month: 'Апрель', aups: 3, soue: 1, aupt: 0, smoke: 0, total: 4 },
+    { month: 'Май', aups: 1, soue: 0, aupt: 1, smoke: 1, total: 3 },
   ];
+
+  const monthlyAlertsData = useMemo(() => {
+    const months = parseInt(periodFilter);
+    return allMonthlyAlertsData.slice(-months);
+  }, [periodFilter]);
 
   const complianceData = [
     { name: 'Соблюдается', value: 85, color: '#22c55e' },
@@ -177,14 +191,36 @@ export default function AssessmentDashboard() {
     { day: 'Вс', responseTime: 1.2, incidents: 1 },
   ];
 
-  const systemUptimeData = [
+  const allSystemUptimeData = [
+    { month: 'Июнь', uptime: 99.1 },
     { month: 'Июль', uptime: 99.2 },
     { month: 'Август', uptime: 99.8 },
     { month: 'Сентябрь', uptime: 98.5 },
     { month: 'Октябрь', uptime: 99.9 },
     { month: 'Ноябрь', uptime: 99.6 },
     { month: 'Декабрь', uptime: 99.8 },
+    { month: 'Январь', uptime: 99.7 },
+    { month: 'Февраль', uptime: 98.9 },
+    { month: 'Март', uptime: 99.4 },
+    { month: 'Апрель', uptime: 99.6 },
+    { month: 'Май', uptime: 99.5 },
   ];
+
+  const systemUptimeData = useMemo(() => {
+    const months = parseInt(periodFilter);
+    return allSystemUptimeData.slice(-months);
+  }, [periodFilter]);
+
+  const visibleBars = useMemo(() => {
+    const systems = {
+      all: ['aups', 'soue', 'aupt', 'smoke'],
+      aups: ['aups'],
+      soue: ['soue'],
+      aupt: ['aupt'],
+      smoke: ['smoke'],
+    };
+    return systems[systemFilter as keyof typeof systems] || systems.all;
+  }, [systemFilter]);
 
   const overallCompletion =
     (metrics.reduce((sum, m) => sum + m.value, 0) / metrics.reduce((sum, m) => sum + m.total, 0)) * 100;
@@ -512,62 +548,110 @@ export default function AssessmentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Кнопки экспорта */}
-        <div className="flex flex-wrap gap-3 justify-end animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '300ms' }}>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportChartAsImage(chart1Ref, 'srabativaniya-sistem')}
-            className="flex items-center gap-2"
-          >
-            <Icon name="Download" size={16} />
-            График 1 (PNG)
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
-            className="flex items-center gap-2"
-          >
-            <Icon name="Download" size={16} />
-            График 2 (PNG)
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportChartAsImage(chart3Ref, 'vremya-otklika')}
-            className="flex items-center gap-2"
-          >
-            <Icon name="Download" size={16} />
-            График 3 (PNG)
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => exportChartAsImage(chart4Ref, 'rabota-sistem')}
-            className="flex items-center gap-2"
-          >
-            <Icon name="Download" size={16} />
-            График 4 (PNG)
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm"
-            onClick={exportAllChartsToPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-          >
-            <Icon name="FileDown" size={16} />
-            {isExporting ? 'Экспорт...' : 'Скачать отчёт (PDF)'}
-          </Button>
-        </div>
+        {/* Фильтры и экспорт */}
+        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="Filter" size={20} className="text-blue-600" />
+              Фильтры данных
+            </CardTitle>
+            <CardDescription>Настройте отображение графиков</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-2 block">
+                  Период отображения
+                </label>
+                <Select value={periodFilter} onValueChange={setPeriodFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите период" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">Последние 3 месяца</SelectItem>
+                    <SelectItem value="6">Последние 6 месяцев</SelectItem>
+                    <SelectItem value="9">Последние 9 месяцев</SelectItem>
+                    <SelectItem value="12">Последние 12 месяцев</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-2 block">
+                  Фильтр по системам
+                </label>
+                <Select value={systemFilter} onValueChange={setSystemFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите систему" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все системы</SelectItem>
+                    <SelectItem value="aups">Только АУПС</SelectItem>
+                    <SelectItem value="soue">Только СОУЭ</SelectItem>
+                    <SelectItem value="aupt">Только АУПТ</SelectItem>
+                    <SelectItem value="smoke">Только Противодымная</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => exportChartAsImage(chart1Ref, 'srabativaniya-sistem')}
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Download" size={16} />
+                  График 1
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Download" size={16} />
+                  График 2
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => exportChartAsImage(chart3Ref, 'vremya-otklika')}
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Download" size={16} />
+                  График 3
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => exportChartAsImage(chart4Ref, 'rabota-sistem')}
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Download" size={16} />
+                  График 4
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={exportAllChartsToPDF}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                >
+                  <Icon name="FileDown" size={16} />
+                  {isExporting ? 'Экспорт...' : 'PDF отчёт'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Icon name="BarChart3" size={20} className="text-orange-500" />
-                Срабатывания систем за 6 месяцев
+                Срабатывания систем
               </CardTitle>
               <CardDescription>Статистика тревожных событий по системам</CardDescription>
             </CardHeader>
@@ -586,10 +670,10 @@ export default function AssessmentDashboard() {
                     }} 
                   />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="aups" name="АУПС" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="soue" name="СОУЭ" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aupt" name="АУПТ" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="smoke" name="Противодымная" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  {visibleBars.includes('aups') && <Bar dataKey="aups" name="АУПС" fill="#3b82f6" radius={[4, 4, 0, 0]} />}
+                  {visibleBars.includes('soue') && <Bar dataKey="soue" name="СОУЭ" fill="#8b5cf6" radius={[4, 4, 0, 0]} />}
+                  {visibleBars.includes('aupt') && <Bar dataKey="aupt" name="АУПТ" fill="#06b6d4" radius={[4, 4, 0, 0]} />}
+                  {visibleBars.includes('smoke') && <Bar dataKey="smoke" name="Противодымная" fill="#10b981" radius={[4, 4, 0, 0]} />}
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
