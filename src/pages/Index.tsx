@@ -21,6 +21,7 @@ import NotificationsSection from '@/components/NotificationsSection';
 import ExportSection from '@/components/ExportSection';
 import FAQSection from '@/components/FAQSection';
 import ChatAssistant from '@/components/ChatAssistant';
+import MonitoringSection from '@/components/MonitoringSection';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -47,6 +48,7 @@ interface ObjectData {
 const mainSections = [
   { id: 'notifications', icon: 'Bell', title: 'Уведомления и напоминания', color: 'bg-red-500' },
   { id: 'export', icon: 'Download', title: 'Экспорт данных в Excel', color: 'bg-green-500' },
+  { id: 'monitoring', icon: 'Monitor', title: 'Мониторинг и управление АРМ', color: 'bg-indigo-500' },
   { id: 'documentation', icon: 'FileText', title: 'Документация', color: 'bg-orange-500' },
   { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
   { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
@@ -809,6 +811,8 @@ export default function Index() {
               <InsuranceSection />
             ) : activeSection === 'faq' ? (
               <FAQSection />
+            ) : activeSection === 'monitoring' ? (
+              <MonitoringSection />
             ) : (
               <Card>
                 <CardHeader>
