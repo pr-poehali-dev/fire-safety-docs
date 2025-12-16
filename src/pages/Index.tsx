@@ -444,9 +444,9 @@ export default function Index() {
             <div>
               <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                 <Icon name="Flame" className="text-primary" size={32} />
-                Журнал документации по пожарной безопасности
+                Цифровизация пожарной безопасности
               </h1>
-              <p className="text-muted-foreground mt-2 text-sm">Система управления документацией ПБ v1.0</p>
+              <p className="text-muted-foreground mt-2 text-sm">Система управления пожарной безопасностью</p>
             </div>
             <Badge variant="outline" className="text-sm px-4 py-2">
               <Icon name="Database" size={16} className="mr-2" />
