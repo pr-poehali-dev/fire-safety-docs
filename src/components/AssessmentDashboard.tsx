@@ -1,15 +1,125 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function AssessmentDashboard() {
   const [isVisible, setIsVisible] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const chart1Ref = useRef<HTMLDivElement>(null);
+  const chart2Ref = useRef<HTMLDivElement>(null);
+  const chart3Ref = useRef<HTMLDivElement>(null);
+  const chart4Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const exportChartAsImage = async (chartRef: React.RefObject<HTMLDivElement>, filename: string) => {
+    if (!chartRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `${filename}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Ошибка экспорта графика:', error);
+    }
+  };
+
+  const exportAllChartsToPDF = async () => {
+    if (!chart1Ref.current || !chart2Ref.current || !chart3Ref.current || !chart4Ref.current) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const chartWidth = pageWidth - (margin * 2);
+      
+      // Заголовок отчёта
+      pdf.setFontSize(18);
+      pdf.text('Отчёт: Оценка пожарной безопасности', margin, 20);
+      pdf.setFontSize(10);
+      pdf.text(`Дата формирования: ${new Date().toLocaleString('ru-RU')}`, margin, 27);
+      
+      let yPosition = 35;
+      
+      // График 1: Столбчатая диаграмма
+      const canvas1 = await html2canvas(chart1Ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      const img1 = canvas1.toDataURL('image/png');
+      const chart1Height = (canvas1.height * chartWidth) / canvas1.width;
+      pdf.addImage(img1, 'PNG', margin, yPosition, chartWidth, chart1Height);
+      yPosition += chart1Height + 10;
+      
+      // График 2: Круговая диаграмма
+      if (yPosition + 80 > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      const canvas2 = await html2canvas(chart2Ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      const img2 = canvas2.toDataURL('image/png');
+      const chart2Height = (canvas2.height * chartWidth) / canvas2.width;
+      pdf.addImage(img2, 'PNG', margin, yPosition, chartWidth, chart2Height);
+      yPosition += chart2Height + 10;
+      
+      // График 3: Область (новая страница)
+      pdf.addPage();
+      yPosition = margin;
+      const canvas3 = await html2canvas(chart3Ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      const img3 = canvas3.toDataURL('image/png');
+      const chart3Height = (canvas3.height * chartWidth) / canvas3.width;
+      pdf.addImage(img3, 'PNG', margin, yPosition, chartWidth, chart3Height);
+      yPosition += chart3Height + 10;
+      
+      // График 4: Линейный
+      if (yPosition + 80 > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      const canvas4 = await html2canvas(chart4Ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      const img4 = canvas4.toDataURL('image/png');
+      const chart4Height = (canvas4.height * chartWidth) / canvas4.width;
+      pdf.addImage(img4, 'PNG', margin, yPosition, chartWidth, chart4Height);
+      
+      // Сохранение PDF
+      pdf.save(`otchet-pb-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Ошибка экспорта PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const metrics = [
     { label: 'Документация', value: 75, total: 100, icon: 'FileText', color: 'bg-orange-500', trend: '+5', status: 'good' },
@@ -402,6 +512,56 @@ export default function AssessmentDashboard() {
           </CardContent>
         </Card>
 
+        {/* Кнопки экспорта */}
+        <div className="flex flex-wrap gap-3 justify-end animate-in fade-in slide-in-from-top duration-500" style={{ animationDelay: '300ms' }}>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportChartAsImage(chart1Ref, 'srabativaniya-sistem')}
+            className="flex items-center gap-2"
+          >
+            <Icon name="Download" size={16} />
+            График 1 (PNG)
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
+            className="flex items-center gap-2"
+          >
+            <Icon name="Download" size={16} />
+            График 2 (PNG)
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportChartAsImage(chart3Ref, 'vremya-otklika')}
+            className="flex items-center gap-2"
+          >
+            <Icon name="Download" size={16} />
+            График 3 (PNG)
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => exportChartAsImage(chart4Ref, 'rabota-sistem')}
+            className="flex items-center gap-2"
+          >
+            <Icon name="Download" size={16} />
+            График 4 (PNG)
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={exportAllChartsToPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          >
+            <Icon name="FileDown" size={16} />
+            {isExporting ? 'Экспорт...' : 'Скачать отчёт (PDF)'}
+          </Button>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
             <CardHeader>
@@ -411,7 +571,7 @@ export default function AssessmentDashboard() {
               </CardTitle>
               <CardDescription>Статистика тревожных событий по системам</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={chart1Ref}>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlyAlertsData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -443,7 +603,7 @@ export default function AssessmentDashboard() {
               </CardTitle>
               <CardDescription>Текущее состояние объекта по категориям</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center justify-center">
+            <CardContent className="flex items-center justify-center" ref={chart2Ref}>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -485,7 +645,7 @@ export default function AssessmentDashboard() {
               </CardTitle>
               <CardDescription>Скорость реагирования на события (в секундах)</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={chart3Ref}>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={weeklyResponseTimeData}>
                   <defs>
@@ -527,7 +687,7 @@ export default function AssessmentDashboard() {
               </CardTitle>
               <CardDescription>Процент времени бесперебойной работы</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={chart4Ref}>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={systemUptimeData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
