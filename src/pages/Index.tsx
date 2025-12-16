@@ -17,6 +17,8 @@ import CalculationsSection from '@/components/CalculationsSection';
 import AuditsSection from '@/components/AuditsSection';
 import DeclarationSection from '@/components/DeclarationSection';
 import InsuranceSection from '@/components/InsuranceSection';
+import NotificationsSection from '@/components/NotificationsSection';
+import ExportSection from '@/components/ExportSection';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -35,6 +37,8 @@ interface ObjectData {
 }
 
 const mainSections = [
+  { id: 'notifications', icon: 'Bell', title: 'Уведомления и напоминания', color: 'bg-red-500' },
+  { id: 'export', icon: 'Download', title: 'Экспорт данных в Excel', color: 'bg-green-500' },
   { id: 'documentation', icon: 'FileText', title: 'Документация', color: 'bg-orange-500' },
   { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
   { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
@@ -475,20 +479,20 @@ export default function Index() {
               <CardContent className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <Button
                   variant={activeSection === 'characteristics' ? 'default' : 'ghost'}
-                  className="w-full justify-start text-sm"
+                  className="w-full justify-start text-sm h-auto py-2"
                   onClick={() => setActiveSection('characteristics')}
                 >
-                  <Icon name="Settings" size={16} className="mr-2" />
-                  Характеристики объекта
+                  <Icon name="Settings" size={16} className="mr-2 shrink-0" />
+                  <span className="text-left line-clamp-2">Характеристики объекта</span>
                 </Button>
                 {mainSections.map((section) => (
                   <Button
                     key={section.id}
                     variant={activeSection === section.id ? 'default' : 'ghost'}
-                    className="w-full justify-start text-xs h-auto py-2"
+                    className="w-full justify-start text-sm h-auto py-2"
                     onClick={() => setActiveSection(section.id)}
                   >
-                    <Icon name={section.icon as any} size={14} className="mr-2 shrink-0" />
+                    <Icon name={section.icon as any} size={16} className="mr-2 shrink-0" />
                     <span className="text-left line-clamp-2">{section.title}</span>
                   </Button>
                 ))}
@@ -684,6 +688,10 @@ export default function Index() {
                   </Tabs>
                 </CardContent>
               </Card>
+            ) : activeSection === 'notifications' ? (
+              <NotificationsSection />
+            ) : activeSection === 'export' ? (
+              <ExportSection />
             ) : activeSection === 'checklist' ? (
               <ChecklistSection />
             ) : activeSection === 'drills' ? (
