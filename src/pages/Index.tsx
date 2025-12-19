@@ -578,14 +578,6 @@ export default function Index() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
-                <Button
-                  variant={activeSection === 'characteristics' ? 'default' : 'ghost'}
-                  className="w-full justify-start text-sm h-auto py-2"
-                  onClick={() => setActiveSection('characteristics')}
-                >
-                  <Icon name="Settings" size={16} className="mr-2 shrink-0" />
-                  <span className="text-left line-clamp-2">Характеристики объекта</span>
-                </Button>
                 {mainSections.map((section) => (
                   <Button
                     key={section.id}
@@ -602,209 +594,7 @@ export default function Index() {
           </div>
 
           <div className="lg:col-span-9">
-            {activeSection === 'characteristics' ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center">
-                      <Icon name="Building" className="text-primary" size={24} />
-                    </div>
-                    <div>
-                      <CardTitle>Характеристики объекта</CardTitle>
-                      <CardDescription>Заполните основные параметры объекта защиты</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Наименование объекта</Label>
-                      <Input
-                        id="name"
-                        value={objectData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        placeholder="Введите наименование"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="functionalClass">Класс функциональной пожарной опасности</Label>
-                      <Input
-                        id="functionalClass"
-                        value={objectData.functionalClass}
-                        onChange={(e) => handleInputChange('functionalClass', e.target.value)}
-                        placeholder="Например: Ф1.1, Ф2.3"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="commissioningDate">Дата ввода в эксплуатацию</Label>
-                      <Input
-                        id="commissioningDate"
-                        type="date"
-                        value={objectData.commissioningDate}
-                        onChange={(e) => handleInputChange('commissioningDate', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Адрес</Label>
-                      <Input
-                        id="address"
-                        value={objectData.address}
-                        onChange={(e) => handleInputChange('address', e.target.value)}
-                        placeholder="Полный адрес объекта"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="fireResistance">Степень огнестойкости</Label>
-                      <Input
-                        id="fireResistance"
-                        value={objectData.fireResistance}
-                        onChange={(e) => handleInputChange('fireResistance', e.target.value)}
-                        placeholder="Например: I, II, III, IV, V"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="structuralFireHazard">Класс конструктивной пожарной опасности</Label>
-                      <Input
-                        id="structuralFireHazard"
-                        value={objectData.structuralFireHazard}
-                        onChange={(e) => handleInputChange('structuralFireHazard', e.target.value)}
-                        placeholder="Например: С0, С1, С2, С3"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="area">Площадь (м²)</Label>
-                      <Input
-                        id="area"
-                        type="number"
-                        value={objectData.area}
-                        onChange={(e) => handleInputChange('area', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="height">Высота (м)</Label>
-                      <Input
-                        id="height"
-                        type="number"
-                        value={objectData.height}
-                        onChange={(e) => handleInputChange('height', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="floorArea">Площадь этажа в пределах пожарного отсека здания (м²)</Label>
-                      <Input
-                        id="floorArea"
-                        type="number"
-                        value={objectData.floorArea}
-                        onChange={(e) => handleInputChange('floorArea', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="floors">Количество этажей</Label>
-                      <Input
-                        id="floors"
-                        type="number"
-                        value={objectData.floors}
-                        onChange={(e) => handleInputChange('floors', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="volume">Объем здания (м³)</Label>
-                      <Input
-                        id="volume"
-                        type="number"
-                        value={objectData.volume}
-                        onChange={(e) => handleInputChange('volume', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="outdoorCategory">Категория наружных установок по пожарной опасности</Label>
-                      <Input
-                        id="outdoorCategory"
-                        value={objectData.outdoorCategory}
-                        onChange={(e) => handleInputChange('outdoorCategory', e.target.value)}
-                        placeholder="Например: Ан, Бн, Вн"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="buildingCategory">Категория зданий</Label>
-                      <Input
-                        id="buildingCategory"
-                        value={objectData.buildingCategory}
-                        onChange={(e) => handleInputChange('buildingCategory', e.target.value)}
-                        placeholder="Например: А, Б, В1-В4, Г, Д"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="workplaces">Количество рабочих мест</Label>
-                      <Input
-                        id="workplaces"
-                        type="number"
-                        value={objectData.workplaces}
-                        onChange={(e) => handleInputChange('workplaces', e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="workingHours">Режим работы</Label>
-                      <Input
-                        id="workingHours"
-                        value={objectData.workingHours}
-                        onChange={(e) => handleInputChange('workingHours', e.target.value)}
-                        placeholder="Например: 9:00-18:00"
-                      />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="protectionSystems">Наличие систем противопожарной защиты</Label>
-                      <Textarea
-                        id="protectionSystems"
-                        value={objectData.protectionSystems}
-                        onChange={(e) => handleInputChange('protectionSystems', e.target.value)}
-                        placeholder="Перечислите установленные системы: АУПС, СОУЭ, АПТ, АУПТ и т.д."
-                        rows={4}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-muted/50 rounded border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Прогресс заполнения</span>
-                      <span className="text-sm text-muted-foreground">{Math.round(completionPercentage)}%</span>
-                    </div>
-                    <div className="w-full bg-background rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-primary h-full transition-all duration-300"
-                        style={{ width: `${completionPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <Button className="w-full mt-6" size="lg" onClick={saveObjectCharacteristics} disabled={loading}>
-                    <Icon name="Save" size={18} className="mr-2" />
-                    {loading ? 'Сохранение...' : 'Сохранить характеристики'}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : activeSection === 'documentation' ? (
+            {activeSection === 'documentation' ? (
               <DocumentationSection />
             ) : activeSection === 'journal' ? (
               <Card>
@@ -856,7 +646,11 @@ export default function Index() {
             ) : activeSection === 'export' ? (
               <ExportSection />
             ) : activeSection === 'characteristic' ? (
-              <CharacteristicTab />
+              <CharacteristicTab 
+                objectData={objectData}
+                onSave={saveObjectCharacteristics}
+                onInputChange={handleInputChange}
+              />
             ) : activeSection === 'informing' ? (
               <InformingTab />
             ) : activeSection === 'profile' ? (

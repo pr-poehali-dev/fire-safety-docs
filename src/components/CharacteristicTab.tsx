@@ -1,55 +1,61 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useState } from 'react';
 
-interface CharacteristicData {
+interface ObjectData {
   name: string;
+  functionalClass: string;
+  commissioningDate: string;
   address: string;
-  systems: {
-    aups: { status: 'active' | 'warning' | 'inactive'; percentage: number };
-    soue: { status: 'active' | 'warning' | 'inactive'; percentage: number };
-    aupt: { status: 'active' | 'warning' | 'inactive'; percentage: number };
-    smoke: { status: 'active' | 'warning' | 'inactive'; percentage: number };
-  };
-  journalCompletion: number;
-  mainIndicators: {
-    tasksCompleted: string;
-    avgResponseTime: string;
-    uptime: string;
-    alertsThisMonth: number;
-  };
-  risks: Array<{ level: 'high' | 'medium' | 'low'; title: string }>;
-  objectPhoto?: string;
+  fireResistance: string;
+  structuralFireHazard: string;
+  area: string;
+  floorArea: string;
+  height: string;
+  floors: string;
+  volume: string;
+  outdoorCategory: string;
+  buildingCategory: string;
+  workplaces: string;
+  workingHours: string;
+  protectionSystems: string;
 }
 
-export default function CharacteristicTab() {
-  const [objectPhoto, setObjectPhoto] = useState<string | null>(null);
+interface CharacteristicTabProps {
+  objectData: ObjectData;
+  onSave: () => void;
+  onInputChange: (field: keyof ObjectData, value: string) => void;
+}
 
-  const characteristicData: CharacteristicData = {
-    name: 'ТЦ "Галерея"',
-    address: 'г. Москва, ул. Примерная, д. 123',
-    systems: {
-      aups: { status: 'active', percentage: 96 },
-      soue: { status: 'active', percentage: 98 },
-      aupt: { status: 'warning', percentage: 87 },
-      smoke: { status: 'active', percentage: 94 },
-    },
-    journalCompletion: 92,
-    mainIndicators: {
-      tasksCompleted: '47 из 52',
-      avgResponseTime: '4.2 мин',
-      uptime: '99.8%',
-      alertsThisMonth: 3,
-    },
-    risks: [
-      { level: 'high', title: 'Устаревшее оборудование АУПТ в секторе B' },
-      { level: 'medium', title: 'Требуется обновление ПО пожарной сигнализации' },
-      { level: 'low', title: 'Планируется замена резервного источника питания' },
-    ],
-    objectPhoto: objectPhoto || undefined,
+export default function CharacteristicTab({ objectData, onSave, onInputChange }: CharacteristicTabProps) {
+  const [objectPhoto, setObjectPhoto] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const systems = {
+    aups: { status: 'active' as const, percentage: 96 },
+    soue: { status: 'active' as const, percentage: 98 },
+    aupt: { status: 'warning' as const, percentage: 87 },
+    smoke: { status: 'active' as const, percentage: 94 },
   };
+
+  const journalCompletion = 92;
+
+  const mainIndicators = {
+    tasksCompleted: '47 из 52',
+    avgResponseTime: '4.2 мин',
+    uptime: '99.8%',
+    alertsThisMonth: 3,
+  };
+
+  const risks = [
+    { level: 'high' as const, title: 'Устаревшее оборудование АУПТ в секторе B' },
+    { level: 'medium' as const, title: 'Требуется обновление ПО пожарной сигнализации' },
+    { level: 'low' as const, title: 'Планируется замена резервного источника питания' },
+  ];
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -106,28 +112,269 @@ export default function CharacteristicTab() {
     }
   };
 
+  const handleSave = () => {
+    onSave();
+    setIsEditing(false);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-700">
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Icon name="Building2" size={24} className="text-blue-600" />
+                Характеристики объекта защиты
+              </CardTitle>
+              <CardDescription>Полная информация об объекте и системах безопасности</CardDescription>
+            </div>
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)} variant="outline" className="gap-2">
+                <Icon name="Edit" size={16} />
+                Редактировать
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button onClick={handleSave} className="gap-2">
+                  <Icon name="Check" size={16} />
+                  Сохранить
+                </Button>
+                <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2">
+                  <Icon name="X" size={16} />
+                  Отмена
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Наименование объекта *</Label>
+              {isEditing ? (
+                <Input
+                  id="name"
+                  value={objectData.name}
+                  onChange={(e) => onInputChange('name', e.target.value)}
+                  placeholder="Введите наименование"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-lg font-medium">
+                  {objectData.name || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Адрес объекта *</Label>
+              {isEditing ? (
+                <Input
+                  id="address"
+                  value={objectData.address}
+                  onChange={(e) => onInputChange('address', e.target.value)}
+                  placeholder="Введите адрес"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border flex items-center gap-2">
+                  <Icon name="MapPin" size={16} className="text-blue-600" />
+                  {objectData.address || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="functionalClass">Класс функциональной пожарной опасности</Label>
+              {isEditing ? (
+                <Input
+                  id="functionalClass"
+                  value={objectData.functionalClass}
+                  onChange={(e) => onInputChange('functionalClass', e.target.value)}
+                  placeholder="Например: Ф1.1, Ф2.3"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.functionalClass || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="commissioningDate">Дата ввода в эксплуатацию</Label>
+              {isEditing ? (
+                <Input
+                  id="commissioningDate"
+                  type="date"
+                  value={objectData.commissioningDate}
+                  onChange={(e) => onInputChange('commissioningDate', e.target.value)}
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.commissioningDate || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fireResistance">Степень огнестойкости</Label>
+              {isEditing ? (
+                <Input
+                  id="fireResistance"
+                  value={objectData.fireResistance}
+                  onChange={(e) => onInputChange('fireResistance', e.target.value)}
+                  placeholder="Например: I, II, III, IV, V"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.fireResistance || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="structuralFireHazard">Класс конструктивной пожарной опасности</Label>
+              {isEditing ? (
+                <Input
+                  id="structuralFireHazard"
+                  value={objectData.structuralFireHazard}
+                  onChange={(e) => onInputChange('structuralFireHazard', e.target.value)}
+                  placeholder="Например: С0, С1, С2, С3"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.structuralFireHazard || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="area">Общая площадь (м²)</Label>
+              {isEditing ? (
+                <Input
+                  id="area"
+                  type="number"
+                  value={objectData.area}
+                  onChange={(e) => onInputChange('area', e.target.value)}
+                  placeholder="0"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.area ? `${objectData.area} м²` : '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="floors">Количество этажей</Label>
+              {isEditing ? (
+                <Input
+                  id="floors"
+                  type="number"
+                  value={objectData.floors}
+                  onChange={(e) => onInputChange('floors', e.target.value)}
+                  placeholder="0"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.floors || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="height">Высота здания (м)</Label>
+              {isEditing ? (
+                <Input
+                  id="height"
+                  type="number"
+                  value={objectData.height}
+                  onChange={(e) => onInputChange('height', e.target.value)}
+                  placeholder="0"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.height ? `${objectData.height} м` : '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="buildingCategory">Категория здания по взрывопожарной опасности</Label>
+              {isEditing ? (
+                <Input
+                  id="buildingCategory"
+                  value={objectData.buildingCategory}
+                  onChange={(e) => onInputChange('buildingCategory', e.target.value)}
+                  placeholder="Например: А, Б, В1, В2, Г, Д"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.buildingCategory || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workplaces">Количество рабочих мест</Label>
+              {isEditing ? (
+                <Input
+                  id="workplaces"
+                  type="number"
+                  value={objectData.workplaces}
+                  onChange={(e) => onInputChange('workplaces', e.target.value)}
+                  placeholder="0"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.workplaces || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workingHours">Режим работы</Label>
+              {isEditing ? (
+                <Input
+                  id="workingHours"
+                  value={objectData.workingHours}
+                  onChange={(e) => onInputChange('workingHours', e.target.value)}
+                  placeholder="Например: 8:00 - 20:00"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {objectData.workingHours || '—'}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+        <Card className="lg:col-span-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Icon name="Building2" size={24} className="text-blue-600" />
-              Общая информация об объекте
+              <Icon name="ShieldCheck" size={20} className="text-purple-600" />
+              Системы противопожарной защиты
             </CardTitle>
-            <CardDescription>Основные сведения</CardDescription>
+            <CardDescription>Установленные на объекте</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Наименование объекта</p>
-              <p className="text-2xl font-bold">{characteristicData.name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Адрес</p>
-              <p className="text-lg flex items-center gap-2">
-                <Icon name="MapPin" size={16} className="text-blue-600" />
-                {characteristicData.address}
-              </p>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="protectionSystems">Перечень систем</Label>
+              {isEditing ? (
+                <textarea
+                  id="protectionSystems"
+                  value={objectData.protectionSystems}
+                  onChange={(e) => onInputChange('protectionSystems', e.target.value)}
+                  placeholder="АУПС, СОУЭ, АУПТ, Противодымная вентиляция и т.д."
+                  className="w-full p-3 border rounded-lg min-h-[100px] bg-white dark:bg-slate-950"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border whitespace-pre-wrap">
+                  {objectData.protectionSystems || '—'}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -196,15 +443,15 @@ export default function CharacteristicTab() {
             <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">АУПС</span>
-                <Badge className={getStatusColor(characteristicData.systems.aups.status)}>
-                  {getStatusText(characteristicData.systems.aups.status)}
+                <Badge className={getStatusColor(systems.aups.status)}>
+                  {getStatusText(systems.aups.status)}
                 </Badge>
               </div>
-              <p className="text-2xl font-bold">{characteristicData.systems.aups.percentage}%</p>
+              <p className="text-2xl font-bold">{systems.aups.percentage}%</p>
               <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-green-500"
-                  style={{ width: `${characteristicData.systems.aups.percentage}%` }}
+                  style={{ width: `${systems.aups.percentage}%` }}
                 />
               </div>
             </div>
@@ -212,15 +459,15 @@ export default function CharacteristicTab() {
             <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">СОУЭ</span>
-                <Badge className={getStatusColor(characteristicData.systems.soue.status)}>
-                  {getStatusText(characteristicData.systems.soue.status)}
+                <Badge className={getStatusColor(systems.soue.status)}>
+                  {getStatusText(systems.soue.status)}
                 </Badge>
               </div>
-              <p className="text-2xl font-bold">{characteristicData.systems.soue.percentage}%</p>
+              <p className="text-2xl font-bold">{systems.soue.percentage}%</p>
               <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-purple-500"
-                  style={{ width: `${characteristicData.systems.soue.percentage}%` }}
+                  style={{ width: `${systems.soue.percentage}%` }}
                 />
               </div>
             </div>
@@ -228,15 +475,15 @@ export default function CharacteristicTab() {
             <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">АУПТ</span>
-                <Badge className={getStatusColor(characteristicData.systems.aupt.status)}>
-                  {getStatusText(characteristicData.systems.aupt.status)}
+                <Badge className={getStatusColor(systems.aupt.status)}>
+                  {getStatusText(systems.aupt.status)}
                 </Badge>
               </div>
-              <p className="text-2xl font-bold">{characteristicData.systems.aupt.percentage}%</p>
+              <p className="text-2xl font-bold">{systems.aupt.percentage}%</p>
               <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-yellow-500"
-                  style={{ width: `${characteristicData.systems.aupt.percentage}%` }}
+                  style={{ width: `${systems.aupt.percentage}%` }}
                 />
               </div>
             </div>
@@ -244,15 +491,15 @@ export default function CharacteristicTab() {
             <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Противодымная</span>
-                <Badge className={getStatusColor(characteristicData.systems.smoke.status)}>
-                  {getStatusText(characteristicData.systems.smoke.status)}
+                <Badge className={getStatusColor(systems.smoke.status)}>
+                  {getStatusText(systems.smoke.status)}
                 </Badge>
               </div>
-              <p className="text-2xl font-bold">{characteristicData.systems.smoke.percentage}%</p>
+              <p className="text-2xl font-bold">{systems.smoke.percentage}%</p>
               <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-cyan-500"
-                  style={{ width: `${characteristicData.systems.smoke.percentage}%` }}
+                  style={{ width: `${systems.smoke.percentage}%` }}
                 />
               </div>
             </div>
@@ -272,20 +519,20 @@ export default function CharacteristicTab() {
           <CardContent>
             <div className="flex items-center gap-6">
               <div className="flex-1">
-                <p className="text-4xl font-bold mb-2">{characteristicData.journalCompletion}%</p>
+                <p className="text-4xl font-bold mb-2">{journalCompletion}%</p>
                 <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-orange-500 to-amber-500"
-                    style={{ width: `${characteristicData.journalCompletion}%` }}
+                    style={{ width: `${journalCompletion}%` }}
                   />
                 </div>
               </div>
               <div className="text-center">
                 <Icon
-                  name={characteristicData.journalCompletion >= 90 ? 'CheckCircle2' : 'AlertCircle'}
+                  name={journalCompletion >= 90 ? 'CheckCircle2' : 'AlertCircle'}
                   size={48}
                   className={
-                    characteristicData.journalCompletion >= 90 ? 'text-green-500' : 'text-yellow-500'
+                    journalCompletion >= 90 ? 'text-green-500' : 'text-yellow-500'
                   }
                 />
               </div>
@@ -305,19 +552,19 @@ export default function CharacteristicTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Задачи выполнено</p>
-                <p className="text-lg font-bold">{characteristicData.mainIndicators.tasksCompleted}</p>
+                <p className="text-lg font-bold">{mainIndicators.tasksCompleted}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Время реакции</p>
-                <p className="text-lg font-bold">{characteristicData.mainIndicators.avgResponseTime}</p>
+                <p className="text-lg font-bold">{mainIndicators.avgResponseTime}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Uptime систем</p>
-                <p className="text-lg font-bold">{characteristicData.mainIndicators.uptime}</p>
+                <p className="text-lg font-bold">{mainIndicators.uptime}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Тревог в месяц</p>
-                <p className="text-lg font-bold">{characteristicData.mainIndicators.alertsThisMonth}</p>
+                <p className="text-lg font-bold">{mainIndicators.alertsThisMonth}</p>
               </div>
             </div>
           </CardContent>
@@ -334,7 +581,7 @@ export default function CharacteristicTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {characteristicData.risks.map((risk, index) => (
+            {risks.map((risk, index) => (
               <div
                 key={index}
                 className="flex items-start gap-3 p-3 bg-white dark:bg-slate-950 rounded-lg border"
