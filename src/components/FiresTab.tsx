@@ -19,33 +19,12 @@ interface FireIncident {
   productionStop: string;
 }
 
-export default function FiresTab() {
-  const [incidents, setIncidents] = useState<FireIncident[]>([
-    {
-      id: '1',
-      date: '12.10.2024',
-      location: 'Складское помещение, сектор C',
-      area: 45.5,
-      startTime: '14:23',
-      endTime: '15:47',
-      casualties: 'Нет',
-      cause: 'Короткое замыкание электропроводки',
-      damage: '2 350 000 руб.',
-      productionStop: '8 часов',
-    },
-    {
-      id: '2',
-      date: '05.08.2024',
-      location: 'Офисное помещение, 3 этаж',
-      area: 12.0,
-      startTime: '09:15',
-      endTime: '09:58',
-      casualties: 'Нет',
-      cause: 'Неисправность электрочайника',
-      damage: '450 000 руб.',
-      productionStop: '3 часа',
-    },
-  ]);
+interface FiresTabProps {
+  incidents: FireIncident[];
+  onIncidentsChange: (incidents: FireIncident[]) => void;
+}
+
+export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps) {
 
   const [isAdding, setIsAdding] = useState(false);
   const [newIncident, setNewIncident] = useState<Omit<FireIncident, 'id'>>({
@@ -66,7 +45,8 @@ export default function FiresTab() {
         id: Date.now().toString(),
         ...newIncident,
       };
-      setIncidents([incident, ...incidents]);
+      const updatedIncidents = [incident, ...incidents];
+      onIncidentsChange(updatedIncidents);
       setNewIncident({
         date: '',
         location: '',
@@ -83,7 +63,8 @@ export default function FiresTab() {
   };
 
   const handleDeleteIncident = (id: string) => {
-    setIncidents(incidents.filter((inc) => inc.id !== id));
+    const updatedIncidents = incidents.filter((inc) => inc.id !== id);
+    onIncidentsChange(updatedIncidents);
   };
 
   const calculateDuration = (startTime: string, endTime: string) => {

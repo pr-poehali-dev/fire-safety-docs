@@ -26,6 +26,7 @@ import CharacteristicTab from '@/components/CharacteristicTab';
 import InformingTab from '@/components/InformingTab';
 import ProfileTab from '@/components/ProfileTab';
 import FiresTab from '@/components/FiresTab';
+import FiresDashboard from '@/components/FiresDashboard';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -280,6 +281,19 @@ const journalSubsections = [
   },
 ];
 
+interface FireIncident {
+  id: string;
+  date: string;
+  location: string;
+  area: number;
+  startTime: string;
+  endTime: string;
+  casualties: string;
+  cause: string;
+  damage: string;
+  productionStop: string;
+}
+
 export default function Index() {
   const [objectData, setObjectData] = useState<ObjectData>({
     name: '',
@@ -303,13 +317,56 @@ export default function Index() {
   const [activeSection, setActiveSection] = useState<string>('characteristics');
   const [activeJournalTab, setActiveJournalTab] = useState<string>('aups');
   const [journalData, setJournalData] = useState<Record<string, any[]>>({});
+  const [fireIncidents, setFireIncidents] = useState<FireIncident[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadObjectData();
     loadJournalData();
+    loadFireIncidents();
   }, []);
+
+  const loadFireIncidents = () => {
+    const stored = localStorage.getItem('fireIncidents');
+    if (stored) {
+      setFireIncidents(JSON.parse(stored));
+    } else {
+      const defaultIncidents: FireIncident[] = [
+        {
+          id: '1',
+          date: '12.10.2024',
+          location: 'Складское помещение, сектор C',
+          area: 45.5,
+          startTime: '14:23',
+          endTime: '15:47',
+          casualties: 'Нет',
+          cause: 'Короткое замыкание электропроводки',
+          damage: '2 350 000 руб.',
+          productionStop: '8 часов',
+        },
+        {
+          id: '2',
+          date: '05.08.2024',
+          location: 'Офисное помещение, 3 этаж',
+          area: 12.0,
+          startTime: '09:15',
+          endTime: '09:58',
+          casualties: 'Нет',
+          cause: 'Неисправность электрочайника',
+          damage: '450 000 руб.',
+          productionStop: '3 часа',
+        },
+      ];
+      setFireIncidents(defaultIncidents);
+      localStorage.setItem('fireIncidents', JSON.stringify(defaultIncidents));
+    }
+  };
+
+  const handleFireIncidentsChange = (newIncidents: FireIncident[]) => {
+    setFireIncidents(newIncidents);
+    localStorage.setItem('fireIncidents', JSON.stringify(newIncidents));
+  };
 
   const loadObjectData = async () => {
     try {
@@ -808,13 +865,18 @@ export default function Index() {
             ) : activeSection === 'profile' ? (
               <ProfileTab />
             ) : activeSection === 'fires' ? (
-              <FiresTab />
+              <FiresTab incidents={fireIncidents} onIncidentsChange={handleFireIncidentsChange} />
             ) : activeSection === 'checklist' ? (
               <ChecklistSection />
             ) : activeSection === 'drills' ? (
               <DrillsSection />
             ) : activeSection === 'assessment' ? (
-              <AssessmentDashboard />
+              <>
+                <AssessmentDashboard />
+                <div className="mt-6">
+                  <FiresDashboard incidents={fireIncidents} />
+                </div>
+              />
             ) : activeSection === 'executive_docs' ? (
               <ExecutiveDocsSection />
             ) : activeSection === 'calculations' ? (

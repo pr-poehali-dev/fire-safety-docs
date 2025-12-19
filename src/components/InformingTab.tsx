@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useState } from 'react';
 
-interface LightningFile {
+interface LightningBulletin {
   id: string;
   name: string;
   uploadDate: string;
+  fileUrl?: string;
 }
 
 interface LegalAct {
@@ -26,9 +27,9 @@ interface BestPractice {
 }
 
 export default function InformingTab() {
-  const [lightningFiles, setLightningFiles] = useState<LightningFile[]>([
-    { id: '1', name: 'Молниезащита_схема_2024.pdf', uploadDate: '15.12.2024' },
-    { id: '2', name: 'Расчет_молниеотводов.xlsx', uploadDate: '10.11.2024' },
+  const [lightningBulletins, setLightningBulletins] = useState<LightningBulletin[]>([
+    { id: '1', name: 'Молния №12 - Декабрь 2024.pdf', uploadDate: '15.12.2024' },
+    { id: '2', name: 'Молния №11 - Ноябрь 2024.pdf', uploadDate: '10.11.2024' },
   ]);
 
   const [legalActs] = useState<LegalAct[]>([
@@ -107,20 +108,25 @@ export default function InformingTab() {
   const [newActUrl, setNewActUrl] = useState('');
   const [newActDescription, setNewActDescription] = useState('');
 
-  const handleLightningFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBulletinUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      const newFiles: LightningFile[] = Array.from(files).map((file) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        uploadDate: new Date().toLocaleDateString('ru-RU'),
-      }));
-      setLightningFiles([...lightningFiles, ...newFiles]);
+      const newBulletins: LightningBulletin[] = Array.from(files).map((file) => {
+        const reader = new FileReader();
+        const fileUrl = URL.createObjectURL(file);
+        return {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          uploadDate: new Date().toLocaleDateString('ru-RU'),
+          fileUrl,
+        };
+      });
+      setLightningBulletins([...lightningBulletins, ...newBulletins]);
     }
   };
 
-  const handleDeleteFile = (id: string) => {
-    setLightningFiles(lightningFiles.filter((file) => file.id !== id));
+  const handleDeleteBulletin = (id: string) => {
+    setLightningBulletins(lightningBulletins.filter((bulletin) => bulletin.id !== id));
   };
 
   const getCategoryColor = (category: string) => {
@@ -141,57 +147,115 @@ export default function InformingTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Icon name="Zap" size={24} className="text-yellow-600" />
-            Молниезащита
+            Молния
           </CardTitle>
-          <CardDescription>Документация по системам молниезащиты объекта</CardDescription>
+          <CardDescription>Информационный буклет по происшествиям и важным событиям компании</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 mb-4">
+            <div className="flex gap-3">
+              <Icon name="Info" size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                  О буклете "Молния"
+                </p>
+                <p className="text-amber-700 dark:text-amber-300">
+                  Регулярное издание компании с информацией о пожарных происшествиях, анализом инцидентов 
+                  и рекомендациями по предотвращению подобных случаев. Помогает сотрудникам учиться на опыте 
+                  и повышать уровень пожарной безопасности.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="lightning-upload" className="mb-2 block">
-              Загрузить файлы
+            <Label htmlFor="bulletin-upload" className="mb-2 block">
+              Загрузить новый выпуск
             </Label>
-            <label htmlFor="lightning-upload">
+            <label htmlFor="bulletin-upload">
               <Button variant="outline" className="w-full" asChild>
                 <span className="flex items-center gap-2 cursor-pointer">
                   <Icon name="Upload" size={16} />
-                  Выбрать файлы
+                  Выбрать файл буклета
                 </span>
               </Button>
               <input
-                id="lightning-upload"
+                id="bulletin-upload"
                 type="file"
+                accept=".pdf,.doc,.docx"
                 multiple
                 className="hidden"
-                onChange={handleLightningFileUpload}
+                onChange={handleBulletinUpload}
               />
             </label>
           </div>
 
-          {lightningFiles.length > 0 && (
+          {lightningBulletins.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Загруженные файлы:</p>
-              {lightningFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 rounded-lg border"
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon name="FileText" size={20} className="text-yellow-600" />
-                    <div>
-                      <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">Загружено: {file.uploadDate}</p>
+              <p className="text-sm font-medium">Архив выпусков "Молния":</p>
+              <div className="grid gap-3">
+                {lightningBulletins.map((bulletin) => (
+                  <div
+                    key={bulletin.id}
+                    className="p-4 bg-white dark:bg-slate-950 rounded-lg border hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Icon name="Zap" size={24} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold mb-1 text-yellow-700 dark:text-yellow-400">
+                            {bulletin.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Дата публикации: {bulletin.uploadDate}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {bulletin.fileUrl && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                asChild
+                                className="text-xs"
+                              >
+                                <a href={bulletin.fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <Icon name="Eye" size={14} className="mr-1" />
+                                  Просмотреть
+                                </a>
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="text-xs">
+                              <Icon name="Download" size={14} className="mr-1" />
+                              Скачать
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs">
+                              <Icon name="Share2" size={14} className="mr-1" />
+                              Поделиться
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDeleteBulletin(bulletin.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Icon name="Trash2" size={16} />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm">
-                      <Icon name="Download" size={16} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteFile(file.id)}>
-                      <Icon name="Trash2" size={16} className="text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lightningBulletins.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-yellow-300 dark:border-yellow-700 rounded-lg">
+              <Icon name="FileWarning" size={48} className="text-yellow-400 mb-3" />
+              <p className="text-sm text-muted-foreground">Выпуски не загружены</p>
+              <p className="text-xs text-muted-foreground mt-1">Загрузите первый буклет "Молния"</p>
             </div>
           )}
         </CardContent>
