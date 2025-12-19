@@ -95,6 +95,43 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
         )}
       </div>
 
+      {incidents.length > 0 && (
+        <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Icon name="BarChart3" size={20} className="text-amber-600" />
+              Статистика инцидентов
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-red-600">{incidents.length}</p>
+                <p className="text-sm text-muted-foreground mt-1">Всего инцидентов</p>
+              </div>
+              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  {incidents.reduce((sum, inc) => sum + inc.area, 0).toFixed(1)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Общая площадь (м²)</p>
+              </div>
+              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-purple-600">
+                  {incidents.filter((inc) => inc.casualties !== 'Нет' && inc.casualties !== '').length}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">С пострадавшими</p>
+              </div>
+              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-green-600">
+                  {new Date().getFullYear()}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Текущий год</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {isAdding && (
         <Card className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200 dark:border-red-800">
           <CardHeader>
@@ -317,42 +354,6 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
         </CardContent>
       </Card>
 
-      {incidents.length > 0 && (
-        <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border-amber-200 dark:border-amber-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Icon name="BarChart3" size={20} className="text-amber-600" />
-              Статистика инцидентов
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
-                <p className="text-2xl font-bold text-red-600">{incidents.length}</p>
-                <p className="text-sm text-muted-foreground mt-1">Всего инцидентов</p>
-              </div>
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
-                <p className="text-2xl font-bold text-blue-600">
-                  {incidents.reduce((sum, inc) => sum + inc.area, 0).toFixed(1)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Общая площадь (м²)</p>
-              </div>
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
-                <p className="text-2xl font-bold text-purple-600">
-                  {incidents.filter((inc) => inc.casualties !== 'Нет' && inc.casualties !== '').length}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">С пострадавшими</p>
-              </div>
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  {new Date().getFullYear()}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Текущий год</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
