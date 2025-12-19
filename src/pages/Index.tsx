@@ -51,17 +51,14 @@ interface ObjectData {
 }
 
 const mainSections = [
-  { id: 'notifications', icon: 'Bell', title: 'Уведомления и напоминания', color: 'bg-red-500' },
-  { id: 'export', icon: 'Download', title: 'Экспорт данных в Excel', color: 'bg-green-500' },
-  { id: 'monitoring', icon: 'Monitor', title: 'Мониторинг и управление АРМ', color: 'bg-indigo-500' },
+  { id: 'profile', icon: 'User', title: 'Личный кабинет', color: 'bg-indigo-500' },
   { id: 'characteristic', icon: 'Building2', title: 'Характеристика объекта', color: 'bg-blue-500' },
   { id: 'informing', icon: 'Info', title: 'Информирование', color: 'bg-cyan-500' },
-  { id: 'profile', icon: 'User', title: 'Личный кабинет', color: 'bg-indigo-500' },
-  { id: 'fires', icon: 'Flame', title: 'Пожары', color: 'bg-red-600' },
   { id: 'documentation', icon: 'FileText', title: 'Документация', color: 'bg-orange-500' },
+  { id: 'monitoring', icon: 'Monitor', title: 'Мониторинг и управление АРМ', color: 'bg-indigo-500' },
+  { id: 'fires', icon: 'Flame', title: 'Пожары', color: 'bg-red-600' },
   { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
   { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
-  { id: 'drills', icon: 'Users', title: 'Тренировки по эвакуации', color: 'bg-blue-500' },
   { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-orange-500' },
   { id: 'executive_docs', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-blue-500' },
   { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-orange-500' },
