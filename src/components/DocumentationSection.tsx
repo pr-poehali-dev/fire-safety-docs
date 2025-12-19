@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import { Badge } from '@/components/ui/badge';
 
 const documentSubsections = [
   { id: 'order', icon: 'FileText', title: 'Приказ о назначении ответственного за ПБ' },
@@ -15,67 +14,53 @@ const documentSubsections = [
   { id: 'journal', icon: 'Book', title: 'Журнал инструктажей' },
 ];
 
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+interface StoredFile {
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  uploadDate: string;
+}
 
 export default function DocumentationSection() {
   const [activeTab, setActiveTab] = useState('order');
-  const [files, setFiles] = useState<Record<string, File[]>>({});
+  const [files, setFiles] = useState<Record<string, StoredFile[]>>({});
 
   useEffect(() => {
-    loadDocumentationFiles();
+    const stored = localStorage.getItem('documentationFiles');
+    if (stored) {
+      setFiles(JSON.parse(stored));
+    }
   }, []);
 
-  const loadDocumentationFiles = async () => {
-    try {
-      const response = await fetch(`${API_URL}?table=documentation_files`);
-      const data = await response.json();
-      const groupedFiles: Record<string, any[]> = {};
-      data.forEach((item: any) => {
-        if (!groupedFiles[item.subsection_id]) {
-          groupedFiles[item.subsection_id] = [];
-        }
-        groupedFiles[item.subsection_id].push({
-          name: item.file_name,
-          size: item.file_size || 0,
-        });
-      });
-    } catch (error) {
-      console.error('Error loading documentation files:', error);
-    }
+  const saveFiles = (newFiles: Record<string, StoredFile[]>) => {
+    setFiles(newFiles);
+    localStorage.setItem('documentationFiles', JSON.stringify(newFiles));
   };
 
-  const handleFileUpload = async (subsectionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (subsectionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
-    setFiles((prev) => ({
-      ...prev,
-      [subsectionId]: [...(prev[subsectionId] || []), ...uploadedFiles],
+    const newStoredFiles: StoredFile[] = uploadedFiles.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file),
+      uploadDate: new Date().toLocaleDateString('ru-RU'),
     }));
-    
-    try {
-      for (const file of uploadedFiles) {
-        await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            table: 'documentation_files',
-            subsection_id: subsectionId,
-            file_name: file.name,
-            file_type: file.type,
-            file_size: file.size,
-          }),
-        });
-      }
-      alert('Файлы успешно загружены в базу данных');
-    } catch (error) {
-      console.error('Error uploading files:', error);
-    }
+
+    const updatedFiles = {
+      ...files,
+      [subsectionId]: [...(files[subsectionId] || []), ...newStoredFiles],
+    };
+    saveFiles(updatedFiles);
   };
 
   const handleFileRemove = (subsectionId: string, index: number) => {
-    setFiles((prev) => ({
-      ...prev,
-      [subsectionId]: prev[subsectionId].filter((_, i) => i !== index),
-    }));
+    const updatedFiles = {
+      ...files,
+      [subsectionId]: files[subsectionId].filter((_, i) => i !== index),
+    };
+    saveFiles(updatedFiles);
   };
 
   return (
@@ -146,7 +131,7 @@ export default function DocumentationSection() {
                         <div>
                           <p className="text-sm font-medium">{file.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {(file.size / 1024).toFixed(2)} KB
+                            {(file.size / 1024).toFixed(2)} KB · Загружено: {file.uploadDate}
                           </p>
                         </div>
                       </div>
@@ -155,11 +140,19 @@ export default function DocumentationSection() {
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            const url = URL.createObjectURL(file);
-                            window.open(url, '_blank');
+                            window.open(file.url, '_blank');
                           }}
                         >
                           <Icon name="Eye" size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                        >
+                          <a href={file.url} download={file.name}>
+                            <Icon name="Download" size={16} />
+                          </a>
                         </Button>
                         <Button
                           variant="ghost"
@@ -176,6 +169,7 @@ export default function DocumentationSection() {
                     <div className="text-center py-8">
                       <Icon name="Inbox" size={48} className="mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Документы не загружены</p>
+                      <p className="text-xs text-muted-foreground mt-1">Нажмите "Загрузить документ" для добавления файлов</p>
                     </div>
                   )}
                 </div>

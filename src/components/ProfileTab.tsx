@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ProfileData {
   fullName: string;
@@ -18,16 +18,38 @@ interface ProfileData {
 export default function ProfileTab() {
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>({
-    fullName: 'Иванов Иван Иванович',
-    birthDate: '15.03.1985',
-    education: 'Высшее, Московский государственный технический университет им. Баумана, специальность: Пожарная безопасность',
-    personalEmail: 'ivanov.ii@example.com',
-    position: 'Инженер по пожарной безопасности',
-    phone: '+7 (999) 123-45-67',
-    department: 'Отдел безопасности',
+    fullName: '',
+    birthDate: '',
+    education: '',
+    personalEmail: '',
+    position: '',
+    phone: '',
+    department: '',
   });
 
   const [tempData, setTempData] = useState<ProfileData>(profileData);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('profileData');
+    if (stored) {
+      const data = JSON.parse(stored);
+      setProfileData(data);
+      setTempData(data);
+    } else {
+      const defaultData = {
+        fullName: 'Иванов Иван Иванович',
+        birthDate: '15.03.1985',
+        education: 'Высшее, Московский государственный технический университет им. Баумана, специальность: Пожарная безопасность',
+        personalEmail: 'ivanov.ii@example.com',
+        position: 'Инженер по пожарной безопасности',
+        phone: '+7 (999) 123-45-67',
+        department: 'Отдел безопасности',
+      };
+      setProfileData(defaultData);
+      setTempData(defaultData);
+      localStorage.setItem('profileData', JSON.stringify(defaultData));
+    }
+  }, []);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -36,6 +58,7 @@ export default function ProfileTab() {
 
   const handleSave = () => {
     setProfileData(tempData);
+    localStorage.setItem('profileData', JSON.stringify(tempData));
     setIsEditing(false);
   };
 

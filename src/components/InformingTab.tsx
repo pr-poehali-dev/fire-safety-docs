@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LightningBulletin {
   id: string;
@@ -27,10 +27,22 @@ interface BestPractice {
 }
 
 export default function InformingTab() {
-  const [lightningBulletins, setLightningBulletins] = useState<LightningBulletin[]>([
-    { id: '1', name: 'Молния №12 - Декабрь 2024.pdf', uploadDate: '15.12.2024' },
-    { id: '2', name: 'Молния №11 - Ноябрь 2024.pdf', uploadDate: '10.11.2024' },
-  ]);
+  const [lightningBulletins, setLightningBulletins] = useState<LightningBulletin[]>([]);
+  const [viewingBulletin, setViewingBulletin] = useState<LightningBulletin | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('lightningBulletins');
+    if (stored) {
+      setLightningBulletins(JSON.parse(stored));
+    } else {
+      const defaultBulletins = [
+        { id: '1', name: 'Молния №12 - Декабрь 2024.pdf', uploadDate: '15.12.2024' },
+        { id: '2', name: 'Молния №11 - Ноябрь 2024.pdf', uploadDate: '10.11.2024' },
+      ];
+      setLightningBulletins(defaultBulletins);
+      localStorage.setItem('lightningBulletins', JSON.stringify(defaultBulletins));
+    }
+  }, []);
 
   const [legalActs] = useState<LegalAct[]>([
     {
@@ -112,7 +124,6 @@ export default function InformingTab() {
     const files = event.target.files;
     if (files) {
       const newBulletins: LightningBulletin[] = Array.from(files).map((file) => {
-        const reader = new FileReader();
         const fileUrl = URL.createObjectURL(file);
         return {
           id: Date.now().toString() + Math.random(),
@@ -121,12 +132,19 @@ export default function InformingTab() {
           fileUrl,
         };
       });
-      setLightningBulletins([...lightningBulletins, ...newBulletins]);
+      const updated = [...lightningBulletins, ...newBulletins];
+      setLightningBulletins(updated);
+      localStorage.setItem('lightningBulletins', JSON.stringify(updated));
     }
   };
 
   const handleDeleteBulletin = (id: string) => {
-    setLightningBulletins(lightningBulletins.filter((bulletin) => bulletin.id !== id));
+    const updated = lightningBulletins.filter((bulletin) => bulletin.id !== id);
+    setLightningBulletins(updated);
+    localStorage.setItem('lightningBulletins', JSON.stringify(updated));
+    if (viewingBulletin?.id === id) {
+      setViewingBulletin(null);
+    }
   };
 
   const getCategoryColor = (category: string) => {
@@ -140,6 +158,47 @@ export default function InformingTab() {
     };
     return colors[category] || 'bg-gray-500';
   };
+
+  if (viewingBulletin) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-300">
+        <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 border-yellow-200 dark:border-yellow-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon name="Zap" size={24} className="text-yellow-600" />
+                  {viewingBulletin.name}
+                </CardTitle>
+                <CardDescription>Дата публикации: {viewingBulletin.uploadDate}</CardDescription>
+              </div>
+              <Button onClick={() => setViewingBulletin(null)} variant="outline" className="gap-2">
+                <Icon name="ArrowLeft" size={16} />
+                Назад к списку
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {viewingBulletin.fileUrl ? (
+              <div className="bg-white dark:bg-slate-950 rounded-lg border-2 border-yellow-200 dark:border-yellow-700 overflow-hidden">
+                <iframe
+                  src={viewingBulletin.fileUrl}
+                  className="w-full h-[800px]"
+                  title={viewingBulletin.name}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-yellow-300 dark:border-yellow-700 rounded-lg">
+                <Icon name="FileWarning" size={64} className="text-yellow-400 mb-4" />
+                <p className="text-lg font-medium mb-2">Файл недоступен для просмотра</p>
+                <p className="text-sm text-muted-foreground">Предварительный просмотр возможен только для загруженных PDF файлов</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom duration-700">
@@ -176,13 +235,13 @@ export default function InformingTab() {
               <Button variant="outline" className="w-full" asChild>
                 <span className="flex items-center gap-2 cursor-pointer">
                   <Icon name="Upload" size={16} />
-                  Выбрать файл буклета
+                  Выбрать файл буклета (PDF)
                 </span>
               </Button>
               <input
                 id="bulletin-upload"
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
                 multiple
                 className="hidden"
                 onChange={handleBulletinUpload}
@@ -212,6 +271,15 @@ export default function InformingTab() {
                             Дата публикации: {bulletin.uploadDate}
                           </p>
                           <div className="flex flex-wrap gap-2">
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={() => setViewingBulletin(bulletin)}
+                              className="text-xs bg-yellow-600 hover:bg-yellow-700"
+                            >
+                              <Icon name="Eye" size={14} className="mr-1" />
+                              Открыть буклет
+                            </Button>
                             {bulletin.fileUrl && (
                               <Button 
                                 variant="outline" 
@@ -219,20 +287,12 @@ export default function InformingTab() {
                                 asChild
                                 className="text-xs"
                               >
-                                <a href={bulletin.fileUrl} target="_blank" rel="noopener noreferrer">
-                                  <Icon name="Eye" size={14} className="mr-1" />
-                                  Просмотреть
+                                <a href={bulletin.fileUrl} download={bulletin.name}>
+                                  <Icon name="Download" size={14} className="mr-1" />
+                                  Скачать
                                 </a>
                               </Button>
                             )}
-                            <Button variant="outline" size="sm" className="text-xs">
-                              <Icon name="Download" size={14} className="mr-1" />
-                              Скачать
-                            </Button>
-                            <Button variant="outline" size="sm" className="text-xs">
-                              <Icon name="Share2" size={14} className="mr-1" />
-                              Поделиться
-                            </Button>
                           </div>
                         </div>
                       </div>
