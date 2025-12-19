@@ -667,7 +667,7 @@ export default function Index() {
                 <div className="mt-6">
                   <FiresDashboard incidents={fireIncidents} />
                 </div>
-              />
+              </>
             ) : activeSection === 'executive_docs' ? (
               <ExecutiveDocsSection />
             ) : activeSection === 'calculations' ? (
