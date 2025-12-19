@@ -8,7 +8,20 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Cartesia
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export default function AssessmentDashboard() {
+interface FireIncident {
+  id: string;
+  date: string;
+  location: string;
+  area: number;
+  casualties: string;
+  damage: string;
+}
+
+interface AssessmentDashboardProps {
+  fireIncidents?: FireIncident[];
+}
+
+export default function AssessmentDashboard({ fireIncidents = [] }: AssessmentDashboardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('6');
@@ -800,6 +813,88 @@ export default function AssessmentDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {fireIncidents.length > 0 && (
+          <Card className="animate-in fade-in slide-in-from-bottom bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 border-red-200 dark:border-red-800" style={{ animationDelay: '400ms' }}>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="Flame" size={20} className="text-red-600" />
+                Информация о пожарах на объекте
+              </CardTitle>
+              <CardDescription>Зарегистрированные инциденты и их влияние на оценку безопасности</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                    <p className="text-2xl font-bold text-red-600">{fireIncidents.length}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Инцидентов</p>
+                  </div>
+                  <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                    <p className="text-2xl font-bold text-orange-600">
+                      {fireIncidents.reduce((sum, inc) => sum + inc.area, 0).toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Площадь (м²)</p>
+                  </div>
+                  <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                    <p className="text-2xl font-bold text-purple-600">
+                      {fireIncidents.filter((inc) => inc.casualties !== 'Нет' && inc.casualties !== '').length}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">С пострадавшими</p>
+                  </div>
+                  <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {fireIncidents.filter((inc) => parseFloat(inc.damage.replace(/\D/g, '')) > 0).length}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">С ущербом</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Последние инциденты:</p>
+                  {fireIncidents.slice(0, 3).map((incident) => (
+                    <div key={incident.id} className="flex items-start gap-3 p-3 bg-white dark:bg-slate-950 rounded-lg border border-red-200 dark:border-red-800">
+                      <Icon name="AlertTriangle" size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className="bg-red-600 text-xs">{incident.date}</Badge>
+                          <span className="text-sm font-medium truncate">{incident.location}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span>Площадь: {incident.area} м²</span>
+                          {incident.casualties !== 'Нет' && incident.casualties !== '' && (
+                            <span className="text-red-600 font-medium">Пострадавшие: {incident.casualties}</span>
+                          )}
+                          {incident.damage && <span>Ущерб: {incident.damage}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {fireIncidents.length > 3 && (
+                    <p className="text-xs text-muted-foreground text-center pt-2">
+                      И ещё {fireIncidents.length - 3} инцидент(ов). Полная информация в разделе "Пожары".
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <Icon name="AlertCircle" size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-red-900 dark:text-red-100 mb-1">
+                        Влияние на оценку безопасности
+                      </p>
+                      <p className="text-red-700 dark:text-red-300">
+                        Наличие {fireIncidents.length} пожарных инцидентов негативно влияет на общую оценку пожарной безопасности объекта. 
+                        Рекомендуется провести дополнительный анализ причин и усилить превентивные меры.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </CardContent>
     </Card>
   );

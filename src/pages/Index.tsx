@@ -22,6 +22,10 @@ import ExportSection from '@/components/ExportSection';
 import FAQSection from '@/components/FAQSection';
 import ChatAssistant from '@/components/ChatAssistant';
 import MonitoringSection from '@/components/MonitoringSection';
+import CharacteristicTab from '@/components/CharacteristicTab';
+import InformingTab from '@/components/InformingTab';
+import ProfileTab from '@/components/ProfileTab';
+import FiresTab from '@/components/FiresTab';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -49,6 +53,10 @@ const mainSections = [
   { id: 'notifications', icon: 'Bell', title: 'Уведомления и напоминания', color: 'bg-red-500' },
   { id: 'export', icon: 'Download', title: 'Экспорт данных в Excel', color: 'bg-green-500' },
   { id: 'monitoring', icon: 'Monitor', title: 'Мониторинг и управление АРМ', color: 'bg-indigo-500' },
+  { id: 'characteristic', icon: 'Building2', title: 'Характеристика объекта', color: 'bg-blue-500' },
+  { id: 'informing', icon: 'Info', title: 'Информирование', color: 'bg-cyan-500' },
+  { id: 'profile', icon: 'User', title: 'Личный кабинет', color: 'bg-indigo-500' },
+  { id: 'fires', icon: 'Flame', title: 'Пожары', color: 'bg-red-600' },
   { id: 'documentation', icon: 'FileText', title: 'Документация', color: 'bg-orange-500' },
   { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
   { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
@@ -793,6 +801,14 @@ export default function Index() {
               <NotificationsSection />
             ) : activeSection === 'export' ? (
               <ExportSection />
+            ) : activeSection === 'characteristic' ? (
+              <CharacteristicTab />
+            ) : activeSection === 'informing' ? (
+              <InformingTab />
+            ) : activeSection === 'profile' ? (
+              <ProfileTab />
+            ) : activeSection === 'fires' ? (
+              <FiresTab />
             ) : activeSection === 'checklist' ? (
               <ChecklistSection />
             ) : activeSection === 'drills' ? (
