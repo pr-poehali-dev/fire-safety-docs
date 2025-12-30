@@ -17,11 +17,23 @@ interface FireIncident {
   damage: string;
 }
 
-interface AssessmentDashboardProps {
-  fireIncidents?: FireIncident[];
+interface JournalData {
+  [key: string]: any[];
 }
 
-export default function AssessmentDashboard({ fireIncidents = [] }: AssessmentDashboardProps) {
+interface AssessmentDashboardProps {
+  fireIncidents?: FireIncident[];
+  journalData?: JournalData;
+  checklistCount?: number;
+  drillsCount?: number;
+}
+
+export default function AssessmentDashboard({ 
+  fireIncidents = [], 
+  journalData = {},
+  checklistCount = 0,
+  drillsCount = 0
+}: AssessmentDashboardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('6');
@@ -137,28 +149,68 @@ export default function AssessmentDashboard({ fireIncidents = [] }: AssessmentDa
     }
   };
 
+  const totalJournalEntries = Object.values(journalData).reduce((sum, entries) => sum + entries.length, 0);
+  const totalJournalSections = 15;
+  const journalPercentage = Math.round((totalJournalEntries / totalJournalSections) * 100);
+
   const metrics = [
     { label: 'Документация', value: 75, total: 100, icon: 'FileText', color: 'bg-orange-500', trend: '+5', status: 'good' },
-    { label: 'Журнал эксплуатации', value: 45, total: 100, icon: 'Clipboard', color: 'bg-blue-500', trend: '+12', status: 'good' },
-    { label: 'Чек-листы', value: 19, total: 19, icon: 'CheckSquare', color: 'bg-green-500', trend: '0', status: 'excellent' },
-    { label: 'Тренировки', value: 2, total: 4, icon: 'Users', color: 'bg-purple-500', trend: '+1', status: 'warning' },
+    { 
+      label: 'Журнал эксплуатации', 
+      value: totalJournalEntries, 
+      total: totalJournalSections, 
+      icon: 'Clipboard', 
+      color: 'bg-blue-500', 
+      trend: '0', 
+      status: totalJournalEntries >= 10 ? 'good' : totalJournalEntries >= 5 ? 'warning' : 'critical' 
+    },
+    { 
+      label: 'Чек-листы', 
+      value: checklistCount, 
+      total: 19, 
+      icon: 'CheckSquare', 
+      color: 'bg-green-500', 
+      trend: '0', 
+      status: checklistCount >= 19 ? 'excellent' : checklistCount >= 10 ? 'good' : 'warning' 
+    },
+    { 
+      label: 'Тренировки', 
+      value: drillsCount, 
+      total: 4, 
+      icon: 'Users', 
+      color: 'bg-purple-500', 
+      trend: '0', 
+      status: drillsCount >= 4 ? 'excellent' : drillsCount >= 2 ? 'warning' : 'critical' 
+    },
     { label: 'Исполнительная документация', value: 8, total: 15, icon: 'FolderOpen', color: 'bg-yellow-500', trend: '+3', status: 'warning' },
     { label: 'Проверки', value: 1, total: 3, icon: 'Search', color: 'bg-red-500', trend: '+1', status: 'critical' },
   ];
 
+  const aupsEntries = (journalData['aups'] || []).length;
+  const soueEntries = (journalData['aups'] || []).length;
+  const totalDevices = aupsEntries + soueEntries;
+
   const monitoringStats = [
-    { label: 'Подключено устройств АУПС', value: 127, icon: 'Radio', color: 'text-blue-500', status: 'online' },
+    { label: 'Подключено устройств АУПС', value: totalDevices || 127, icon: 'Radio', color: 'text-blue-500', status: 'online' },
     { label: 'Активных зон контроля', value: 45, icon: 'MapPin', color: 'text-green-500', status: 'active' },
-    { label: 'Срабатываний за месяц', value: 3, icon: 'AlertCircle', color: 'text-orange-500', status: 'normal' },
+    { label: 'Инцидентов за год', value: fireIncidents.length, icon: 'AlertCircle', color: 'text-orange-500', status: 'normal' },
     { label: 'Время отклика системы', value: '1.2с', icon: 'Zap', color: 'text-purple-500', status: 'fast' },
   ];
 
+  const getSystemHealth = (systemKey: string, icon: string) => {
+    const entries = (journalData[systemKey] || []).length;
+    const health = entries > 0 ? Math.min(100, 80 + entries * 2) : 75;
+    const status = entries > 0 ? 'Работает' : 'Нет данных';
+    const color = entries > 3 ? 'bg-green-500' : entries > 1 ? 'bg-yellow-500' : 'bg-gray-500';
+    return { entries, health, status, color, icon };
+  };
+
   const systemHealth = [
-    { system: 'АУПС', status: 'Работает', health: 98, lastCheck: '10 минут назад', icon: 'Radio', color: 'bg-green-500' },
-    { system: 'СОУЭ', status: 'Работает', health: 100, lastCheck: '5 минут назад', icon: 'Bell', color: 'bg-green-500' },
-    { system: 'АУПТ', status: 'Работает', health: 95, lastCheck: '15 минут назад', icon: 'Droplet', color: 'bg-green-500' },
-    { system: 'Противодымная вентиляция', status: 'Работает', health: 92, lastCheck: '12 минут назад', icon: 'Wind', color: 'bg-green-500' },
-    { system: 'Видеонаблюдение', status: 'Работает', health: 100, lastCheck: '2 минуты назад', icon: 'Video', color: 'bg-green-500' },
+    { system: 'АУПС', ...getSystemHealth('aups', 'Radio'), lastCheck: '10 минут назад' },
+    { system: 'СОУЭ', ...getSystemHealth('soue', 'Bell'), lastCheck: '5 минут назад' },
+    { system: 'АУПТ', ...getSystemHealth('aupt', 'Droplet'), lastCheck: '15 минут назад' },
+    { system: 'Противодымная вентиляция', ...getSystemHealth('smoke_ventilation', 'Wind'), lastCheck: '12 минут назад' },
+    { system: 'Огнетушители', ...getSystemHealth('fire_extinguishers', 'Zap'), lastCheck: '2 минуты назад' },
   ];
 
   const upcomingTasks = [

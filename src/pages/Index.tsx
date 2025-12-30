@@ -315,6 +315,8 @@ export default function Index() {
   const [activeJournalTab, setActiveJournalTab] = useState<string>('aups');
   const [journalData, setJournalData] = useState<Record<string, any[]>>({});
   const [fireIncidents, setFireIncidents] = useState<FireIncident[]>([]);
+  const [checklistCount, setChecklistCount] = useState(0);
+  const [drillsCount, setDrillsCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -322,6 +324,8 @@ export default function Index() {
     loadObjectData();
     loadJournalData();
     loadFireIncidents();
+    loadChecklistData();
+    loadDrillsData();
   }, []);
 
   const loadFireIncidents = () => {
@@ -432,6 +436,27 @@ export default function Index() {
       setJournalData(newData);
     } catch (error) {
       console.error('Error loading journal data:', error);
+    }
+  };
+
+  const loadChecklistData = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=checklist_items`);
+      const data = await response.json();
+      const completedCount = data.filter((item: any) => item.status === 'yes').length;
+      setChecklistCount(completedCount);
+    } catch (error) {
+      console.error('Error loading checklist data:', error);
+    }
+  };
+
+  const loadDrillsData = async () => {
+    try {
+      const response = await fetch(`${API_URL}?table=drills`);
+      const data = await response.json();
+      setDrillsCount(data.length);
+    } catch (error) {
+      console.error('Error loading drills data:', error);
     }
   };
 
@@ -663,7 +688,12 @@ export default function Index() {
               <DrillsSection />
             ) : activeSection === 'assessment' ? (
               <>
-                <AssessmentDashboard />
+                <AssessmentDashboard 
+                  fireIncidents={fireIncidents}
+                  journalData={journalData}
+                  checklistCount={checklistCount}
+                  drillsCount={drillsCount}
+                />
                 <div className="mt-6">
                   <FiresDashboard incidents={fireIncidents} />
                 </div>
