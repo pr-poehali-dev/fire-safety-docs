@@ -84,8 +84,11 @@ export default function AssessmentDashboard({
       pdf.text('Отчёт: Оценка пожарной безопасности', margin, 20);
       pdf.setFontSize(10);
       pdf.text(`Дата формирования: ${new Date().toLocaleString('ru-RU')}`, margin, 27);
+      pdf.text(`Общая готовность объекта: ${Math.round(overallCompletion)}%`, margin, 33);
+      pdf.text(`Записей в журнале: ${totalJournalEntries} | Чек-листов: ${checklistCount}/19 | Тренировок: ${drillsCount}`, margin, 39);
+      pdf.text(`Пожарных инцидентов за период: ${fireIncidents.length}`, margin, 45);
       
-      let yPosition = 35;
+      let yPosition = 55;
       
       // График 1: Столбчатая диаграмма
       const canvas1 = await html2canvas(chart1Ref.current, {
@@ -240,10 +243,15 @@ export default function AssessmentDashboard({
     return allMonthlyAlertsData.slice(-months);
   }, [periodFilter]);
 
+  const totalChecklistItems = 19;
+  const completedItems = checklistCount;
+  const warningItems = Math.max(0, Math.floor((totalChecklistItems - completedItems) * 0.7));
+  const criticalItems = Math.max(0, totalChecklistItems - completedItems - warningItems);
+  
   const complianceData = [
-    { name: 'Соблюдается', value: 85, color: '#22c55e' },
-    { name: 'Требует внимания', value: 12, color: '#eab308' },
-    { name: 'Критичные', value: 3, color: '#ef4444' },
+    { name: 'Соблюдается', value: completedItems, color: '#22c55e' },
+    { name: 'Требует внимания', value: warningItems, color: '#eab308' },
+    { name: 'Критичные', value: criticalItems, color: '#ef4444' },
   ];
 
   const weeklyResponseTimeData = [
@@ -290,6 +298,9 @@ export default function AssessmentDashboard({
   const overallCompletion =
     (metrics.reduce((sum, m) => sum + m.value, 0) / metrics.reduce((sum, m) => sum + m.total, 0)) * 100;
 
+  const criticalSections = metrics.filter(m => m.status === 'critical');
+  const warningSections = metrics.filter(m => m.status === 'warning');
+
   return (
     <Card>
       <CardHeader>
@@ -301,10 +312,15 @@ export default function AssessmentDashboard({
             <CardTitle>Оценка пожарной безопасности и риски</CardTitle>
             <CardDescription>Интерактивный дашборд состояния ПБ в режиме реального времени</CardDescription>
           </div>
-          <Badge variant="outline" className="ml-auto flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-            Онлайн
-          </Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+              Онлайн
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Обновлено: {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -314,16 +330,30 @@ export default function AssessmentDashboard({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Общая готовность объекта</span>
-                <p className="text-xs text-muted-foreground mt-1">По данным на {new Date().toLocaleDateString('ru-RU')}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  По данным на {new Date().toLocaleDateString('ru-RU')} в {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    <Icon name="Database" size={10} className="mr-1" />
+                    {totalJournalEntries} записей в журнале
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    <Icon name="CheckCircle2" size={10} className="mr-1" />
+                    {checklistCount}/19 чек-листов
+                  </Badge>
+                </div>
               </div>
               <div className="text-right">
                 <Badge variant="outline" className="text-2xl font-bold px-4 py-2 bg-background/50">
                   {Math.round(overallCompletion)}%
                 </Badge>
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1 justify-end">
-                  <Icon name="TrendingUp" size={12} />
-                  +8% за месяц
-                </p>
+                {criticalItems > 0 && (
+                  <Badge className="mt-2 bg-red-500 hover:bg-red-600 flex items-center gap-1 justify-end">
+                    <Icon name="AlertTriangle" size={12} />
+                    {criticalItems} критичных
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="w-full bg-background/50 rounded-full h-6 overflow-hidden shadow-inner">
@@ -336,6 +366,37 @@ export default function AssessmentDashboard({
             </div>
           </CardContent>
         </Card>
+
+        {(criticalSections.length > 0 || warningSections.length > 0) && (
+          <Card className="border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="AlertTriangle" size={20} className="text-red-600" />
+                Требуется внимание
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {criticalSections.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge className="bg-red-500 hover:bg-red-600">Критично</Badge>
+                    <span className="text-muted-foreground">
+                      {criticalSections.map(s => s.label).join(', ')} - требуется срочное обновление данных
+                    </span>
+                  </div>
+                )}
+                {warningSections.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge variant="outline" className="border-yellow-500 text-yellow-700">Внимание</Badge>
+                    <span className="text-muted-foreground">
+                      {warningSections.map(s => s.label).join(', ')} - рекомендуется заполнить
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {metrics.map((metric, index) => {
@@ -366,7 +427,21 @@ export default function AssessmentDashboard({
                       )}
                     </div>
                   </div>
-                  <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
+                    {metric.status === 'excellent' && (
+                      <Badge className="bg-green-500 hover:bg-green-600 text-xs">✓ Отлично</Badge>
+                    )}
+                    {metric.status === 'good' && (
+                      <Badge variant="outline" className="text-xs border-green-500 text-green-700">Хорошо</Badge>
+                    )}
+                    {metric.status === 'warning' && (
+                      <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700">Внимание</Badge>
+                    )}
+                    {metric.status === 'critical' && (
+                      <Badge className="bg-red-500 hover:bg-red-600 text-xs">! Критично</Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
@@ -377,9 +452,14 @@ export default function AssessmentDashboard({
                       <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {percentage === 100 ? 'Выполнено полностью' : `Выполнено ${Math.round(percentage)}%`}
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {percentage === 100 ? 'Выполнено полностью' : `Выполнено ${Math.round(percentage)}%`}
+                    </p>
+                    <p className="text-xs font-medium">
+                      {metric.value} из {metric.total}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -420,13 +500,51 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
+        {fireIncidents.length > 0 && (
+          <Card className="border-t-4 border-t-red-500 bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Icon name="Flame" size={20} className="text-red-600" />
+                Статистика пожарных инцидентов
+              </CardTitle>
+              <CardDescription>Данные по зарегистрированным пожарам за текущий период</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                  <p className="text-2xl font-bold text-red-600">{fireIncidents.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Всего инцидентов</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {fireIncidents.reduce((sum, inc) => sum + inc.area, 0).toFixed(1)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Общая площадь (м²)</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {fireIncidents.filter((inc) => inc.casualties !== 'Нет' && inc.casualties !== '').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">С пострадавшими</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
+                  <p className="text-2xl font-bold text-orange-600">
+                    {fireIncidents.length > 0 ? (fireIncidents.reduce((sum, inc) => sum + inc.area, 0) / fireIncidents.length).toFixed(1) : '0'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Средняя площадь (м²)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Icon name="Activity" size={20} className="text-green-500" />
               Состояние систем противопожарной защиты
             </CardTitle>
-            <CardDescription>Статус работы и показатели здоровья систем</CardDescription>
+            <CardDescription>Статус работы и показатели здоровья систем (на основе данных журнала)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {systemHealth.map((system, index) => (
@@ -441,10 +559,15 @@ export default function AssessmentDashboard({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-sm">{system.system}</h4>
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
+                    <Badge variant="outline" className={`text-xs ${system.status === 'Работает' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                      <div className={`h-1.5 w-1.5 rounded-full ${system.status === 'Работает' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'} mr-1`}></div>
                       {system.status}
                     </Badge>
+                    {system.entries !== undefined && (
+                      <Badge variant="outline" className="text-xs">
+                        {system.entries} записей
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
