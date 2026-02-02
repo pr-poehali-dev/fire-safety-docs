@@ -60,6 +60,16 @@ export default function ProfileTab() {
     setProfileData(tempData);
     localStorage.setItem('profileData', JSON.stringify(tempData));
     setIsEditing(false);
+    
+    const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
+    logs.push({
+      id: Date.now().toString(),
+      action: 'Обновлен профиль',
+      section: 'Личный кабинет',
+      timestamp: new Date().toISOString(),
+      details: tempData.fullName,
+    });
+    localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
   };
 
   const handleCancel = () => {

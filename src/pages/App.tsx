@@ -28,6 +28,7 @@ import ProfileTab from '@/components/ProfileTab';
 import FiresTab from '@/components/FiresTab';
 import FiresDashboard from '@/components/FiresDashboard';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import ActivityHistory from '@/components/ActivityHistory';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -278,6 +279,16 @@ const AppPage = () => {
         title: 'Успешно сохранено',
         description: 'Данные объекта обновлены',
       });
+
+      const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
+      logs.push({
+        id: Date.now().toString(),
+        action: 'Обновлены характеристики объекта',
+        section: 'Характеристика объекта',
+        timestamp: new Date().toISOString(),
+        details: objectData.name,
+      });
+      localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
     } catch (error) {
       console.error('Error saving object data:', error);
       toast({
@@ -354,7 +365,7 @@ const AppPage = () => {
       case 'audits':
         return <AuditsSection />;
       case 'declaration':
-        return <DeclarationSection />;
+        return <DeclarationSection objectData={objectData} />;
       case 'insurance':
         return <InsuranceSection />;
       case 'notifications':
@@ -428,6 +439,7 @@ const AppPage = () => {
           </div>
 
           <ChatAssistant />
+          <ActivityHistory />
         </div>
       </div>
     </>

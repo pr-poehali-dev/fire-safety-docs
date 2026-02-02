@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +28,31 @@ export default function JournalSection({
   onSave,
   data = [],
 }: JournalSectionProps) {
+  const storageKey = `journal_${sectionId}`;
+  const [entries, setEntries] = useState<any[]>([]);
   const [newEntry, setNewEntry] = useState<any>({});
   const [headerData, setHeaderData] = useState<any>({});
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setEntries(parsed.entries || []);
+        setHeaderData(parsed.headerData || {});
+      } catch (e) {
+        console.error('Error loading journal data:', e);
+      }
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (entries.length > 0 || Object.keys(headerData).length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify({ entries, headerData, lastModified: new Date().toISOString() }));
+      setLastSaved(new Date());
+    }
+  }, [entries, headerData, storageKey]);
 
   const handleFieldChange = (key: string, value: string) => {
     setNewEntry((prev: any) => ({ ...prev, [key]: value }));
@@ -39,9 +62,29 @@ export default function JournalSection({
     setHeaderData((prev: any) => ({ ...prev, [key]: value }));
   };
 
+  const logActivity = (action: string, details?: string) => {
+    const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
+    logs.push({
+      id: Date.now().toString(),
+      action,
+      section: title,
+      timestamp: new Date().toISOString(),
+      details,
+    });
+    localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
+  };
+
   const handleAddEntry = () => {
-    onSave({ ...newEntry, ...headerData });
+    const entry = { ...newEntry, id: Date.now(), createdAt: new Date().toISOString() };
+    setEntries(prev => [...prev, entry]);
+    onSave(entry);
+    logActivity('Добавлена запись', Object.values(newEntry).slice(0, 2).join(', '));
     setNewEntry({});
+  };
+
+  const handleDeleteEntry = (id: number) => {
+    setEntries(prev => prev.filter(e => e.id !== id));
+    logActivity('Удалена запись', `ID: ${id}`);
   };
 
   return (
@@ -94,7 +137,7 @@ export default function JournalSection({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((row, index) => (
+              {entries.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-mono text-xs">{index + 1}</TableCell>
                   {fields.map((field) => (
@@ -103,7 +146,7 @@ export default function JournalSection({
                     </TableCell>
                   ))}
                   <TableCell>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteEntry(row.id)}>
                       <Icon name="Trash2" size={16} />
                     </Button>
                   </TableCell>
@@ -142,8 +185,14 @@ export default function JournalSection({
           </Table>
         </div>
 
-        <div className="mt-4 text-xs text-muted-foreground">
-          Всего записей: {data.length}
+        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>Всего записей: {entries.length}</span>
+          {lastSaved && (
+            <span className="flex items-center gap-1">
+              <Icon name="Check" size={12} className="text-green-600" />
+              Сохранено: {lastSaved.toLocaleTimeString('ru-RU')}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
