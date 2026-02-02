@@ -3,10 +3,12 @@ import { ChevronDown, Flame, FileText, CheckSquare, Droplet, Search, Calculator,
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
 const Index = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
 
   const slides = [
@@ -63,7 +65,14 @@ const Index = () => {
       subtitle: "Полный учёт всех происшествий и последствий",
       icon: <Flame className="w-24 h-24 text-red-500" />,
       gradient: "from-red-500 to-rose-600",
-      image: "https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/5112a6ed-6c29-4458-887c-87e5eee668b1.jpg"
+      image: "https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/5112a6ed-6c29-4458-887c-87e5eee668b1.jpg",
+      features: [
+        "📅 Дата и время каждого происшествия",
+        "🔥 Причины возгорания и описание",
+        "💰 Оценка материального ущерба",
+        "👥 Количество пострадавших",
+        "📋 Акты расследования и выводы"
+      ]
     },
     {
       title: "Мониторинг и управление АРМ",
@@ -193,10 +202,15 @@ const Index = () => {
   }, [currentSlide, isAnimating]);
 
   const handleEnterSystem = () => {
-    navigate('/app');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      navigate('/app');
+    }, 300);
   };
 
   return (
+    <>
+      {isTransitioning && <LoadingIndicator />}
     <div className="relative">
       <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
         {slides.map((_, index) => (
@@ -392,6 +406,7 @@ const Index = () => {
         }
       `}</style>
     </div>
+    </>
   );
 };
 

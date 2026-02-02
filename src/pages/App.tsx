@@ -27,6 +27,7 @@ import InformingTab from '@/components/InformingTab';
 import ProfileTab from '@/components/ProfileTab';
 import FiresTab from '@/components/FiresTab';
 import FiresDashboard from '@/components/FiresDashboard';
+import LoadingIndicator from '@/components/LoadingIndicator';
 import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
@@ -218,6 +219,7 @@ const drillFields = [
 const AppPage = () => {
   const [activeSection, setActiveSection] = useState('profile');
   const [activeJournalSubsection, setActiveJournalSubsection] = useState(journalSubsections[0].id);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const [objectData, setObjectData] = useState<ObjectData>({
@@ -241,6 +243,7 @@ const AppPage = () => {
 
   useEffect(() => {
     const fetchObjectData = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(`${API_URL}/get-object-data`);
         if (!response.ok) throw new Error('Failed to fetch');
@@ -250,6 +253,8 @@ const AppPage = () => {
         }
       } catch (error) {
         console.error('Error fetching object data:', error);
+      } finally {
+        setTimeout(() => setIsLoading(false), 500);
       }
     };
 
@@ -257,6 +262,7 @@ const AppPage = () => {
   }, []);
 
   const handleSaveObject = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/save-object-data`, {
         method: 'POST',
@@ -277,7 +283,13 @@ const AppPage = () => {
         description: 'Не удалось сохранить данные',
         variant: 'destructive',
       });
+    } finally {
+      setTimeout(() => setIsLoading(false), 500);
     }
+  };
+
+  const handleInputChange = (field: keyof ObjectData, value: string) => {
+    setObjectData(prev => ({ ...prev, [field]: value }));
   };
 
   const renderMainSection = () => {
@@ -285,7 +297,7 @@ const AppPage = () => {
       case 'profile':
         return <ProfileTab />;
       case 'characteristic':
-        return <CharacteristicTab />;
+        return <CharacteristicTab objectData={objectData} onSave={handleSaveObject} onInputChange={handleInputChange} />;
       case 'informing':
         return <InformingTab />;
       case 'documentation':
@@ -348,8 +360,10 @@ const AppPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+    <>
+      {isLoading && <LoadingIndicator />}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -407,6 +421,7 @@ const AppPage = () => {
         <ChatAssistant />
       </div>
     </div>
+    </>
   );
 };
 
