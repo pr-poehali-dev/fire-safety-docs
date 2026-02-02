@@ -328,7 +328,14 @@ const AppPage = () => {
               </div>
               {journalSubsections.map((subsection) => (
                 <TabsContent key={subsection.id} value={subsection.id}>
-                  <JournalSection subsection={subsection} />
+                  <JournalSection 
+                    sectionId={subsection.id}
+                    title={subsection.fullTitle}
+                    icon={subsection.icon}
+                    color="bg-blue-500"
+                    fields={subsection.fields}
+                    onSave={(data) => console.log('Saved:', data)}
+                  />
                 </TabsContent>
               ))}
             </Tabs>
