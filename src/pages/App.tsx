@@ -305,7 +305,7 @@ const AppPage = () => {
       case 'monitoring':
         return <MonitoringSection />;
       case 'fires':
-        return <FiresTab />;
+        return <FiresTab incidents={fireIncidents} onIncidentsChange={setFireIncidents} />;
       case 'journal':
         return (
           <div>
