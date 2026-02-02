@@ -222,6 +222,8 @@ const AppPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const [fireIncidents, setFireIncidents] = useState<any[]>([]);
+
   const [objectData, setObjectData] = useState<ObjectData>({
     name: '',
     functionalClass: '',
@@ -363,64 +365,64 @@ const AppPage = () => {
     <>
       {isLoading && <LoadingIndicator />}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              onClick={() => window.location.href = '/'}
-              className="gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <Icon name="ArrowLeft" size={20} />
-              <span>Назад к презентации</span>
-            </Button>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Icon name="Flame" size={48} className="text-orange-500" />
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
-                Система управления ПБ
-              </h1>
+        <div className="flex">
+          {/* Боковая навигация */}
+          <div className="w-80 min-h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500">
+              <div className="flex items-center gap-3 mb-2">
+                <Icon name="Flame" size={32} className="text-white" />
+                <h1 className="text-xl font-bold text-white">
+                  Система управления ПБ
+                </h1>
+              </div>
+              <p className="text-white/80 text-sm">
+                Управление пожарной безопасностью
+              </p>
             </div>
-            <p className="text-gray-600 text-lg">
-              Комплексное решение для управления пожарной безопасностью объекта
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-8 overflow-x-auto">
-          <div className="flex gap-2 pb-2 min-w-max">
-            {mainSections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`group relative px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-3 whitespace-nowrap ${
-                  activeSection === section.id
-                    ? 'bg-gradient-to-r ' + section.color.replace('bg-', 'from-') + ' to-opacity-80 text-white shadow-lg scale-105'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-md'
-                }`}
+            
+            <div className="p-4">
+              <Button
+                variant="ghost"
+                onClick={() => window.location.href = '/'}
+                className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900 mb-4"
               >
-                <Icon 
-                  name={section.icon} 
-                  size={20} 
-                  className={activeSection === section.id ? '' : 'text-gray-500 group-hover:text-gray-700'}
-                />
-                <span className="text-sm font-semibold">{section.title}</span>
-                {activeSection === section.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-full"></div>
-                )}
-              </button>
-            ))}
+                <Icon name="ArrowLeft" size={20} />
+                <span>К презентации</span>
+              </Button>
+            </div>
+
+            <nav className="px-4 pb-4 space-y-1">
+              {mainSections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-3 ${
+                    activeSection === section.id
+                      ? section.color + ' text-white shadow-md'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon 
+                    name={section.icon} 
+                    size={20} 
+                    className={activeSection === section.id ? '' : 'text-gray-500'}
+                  />
+                  <span className="text-sm">{section.title}</span>
+                </button>
+              ))}
+            </nav>
           </div>
+
+          {/* Основной контент */}
+          <div className="ml-80 flex-1 p-8">
+            <Card className="shadow-lg">
+              <CardContent className="p-6">{renderMainSection()}</CardContent>
+            </Card>
+          </div>
+
+          <ChatAssistant />
         </div>
-
-        <Card className="shadow-lg">
-          <CardContent className="p-6">{renderMainSection()}</CardContent>
-        </Card>
-
-        <ChatAssistant />
       </div>
-    </div>
     </>
   );
 };
