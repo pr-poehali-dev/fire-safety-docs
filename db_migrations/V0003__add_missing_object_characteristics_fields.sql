@@ -1,0 +1,8 @@
+ALTER TABLE t_p36866218_fire_safety_docs.object_characteristics
+ADD COLUMN IF NOT EXISTS fire_resistance VARCHAR(100),
+ADD COLUMN IF NOT EXISTS structural_fire_hazard VARCHAR(100),
+ADD COLUMN IF NOT EXISTS floor_area NUMERIC(10,2),
+ADD COLUMN IF NOT EXISTS volume NUMERIC(10,2),
+ADD COLUMN IF NOT EXISTS outdoor_category VARCHAR(100),
+ADD COLUMN IF NOT EXISTS building_category VARCHAR(100),
+ADD COLUMN IF NOT EXISTS photo TEXT;

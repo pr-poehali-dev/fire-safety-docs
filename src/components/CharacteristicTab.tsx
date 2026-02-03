@@ -23,6 +23,7 @@ interface ObjectData {
   workplaces: string;
   workingHours: string;
   protectionSystems: string;
+  photo?: string | null;
 }
 
 interface CharacteristicTabProps {
@@ -32,7 +33,7 @@ interface CharacteristicTabProps {
 }
 
 export default function CharacteristicTab({ objectData, onSave, onInputChange }: CharacteristicTabProps) {
-  const [objectPhoto, setObjectPhoto] = useState<string | null>(null);
+  const [objectPhoto, setObjectPhoto] = useState<string | null>(objectData.photo || null);
   const [isEditing, setIsEditing] = useState(false);
 
   const systems = {
@@ -62,7 +63,9 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setObjectPhoto(reader.result as string);
+        const photoData = reader.result as string;
+        setObjectPhoto(photoData);
+        onInputChange('photo' as keyof ObjectData, photoData);
       };
       reader.readAsDataURL(file);
     }
@@ -399,7 +402,10 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                     variant="destructive"
                     size="sm"
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setObjectPhoto(null)}
+                    onClick={() => {
+                      setObjectPhoto(null);
+                      onInputChange('photo' as keyof ObjectData, '');
+                    }}
                   >
                     <Icon name="Trash2" size={16} />
                   </Button>

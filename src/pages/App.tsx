@@ -50,6 +50,7 @@ interface ObjectData {
   workplaces: string;
   workingHours: string;
   protectionSystems: string;
+  photo?: string | null;
 }
 
 const mainSections = [
@@ -242,17 +243,37 @@ const AppPage = () => {
     workplaces: '',
     workingHours: '',
     protectionSystems: '',
+    photo: null,
   });
 
   useEffect(() => {
     const fetchObjectData = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_URL}/get-object-data`);
+        const response = await fetch(`${API_URL}?table=object_characteristics`);
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        if (data) {
-          setObjectData(data);
+        if (data && data.length > 0) {
+          const latest = data[0];
+          setObjectData({
+            name: latest.name || '',
+            functionalClass: latest.functional_class || '',
+            commissioningDate: latest.commissioning_date || '',
+            address: latest.address || '',
+            fireResistance: latest.fire_resistance || '',
+            structuralFireHazard: latest.structural_fire_hazard || '',
+            area: latest.area ? String(latest.area) : '',
+            floorArea: latest.floor_area ? String(latest.floor_area) : '',
+            height: latest.height ? String(latest.height) : '',
+            floors: latest.floors ? String(latest.floors) : '',
+            volume: latest.volume ? String(latest.volume) : '',
+            outdoorCategory: latest.outdoor_category || '',
+            buildingCategory: latest.building_category || '',
+            workplaces: latest.workplaces ? String(latest.workplaces) : '',
+            workingHours: latest.working_hours || '',
+            protectionSystems: latest.protection_systems || '',
+            photo: latest.photo || null,
+          });
         }
       } catch (error) {
         console.error('Error fetching object data:', error);
@@ -267,10 +288,31 @@ const AppPage = () => {
   const handleSaveObject = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/save-object-data`, {
+      const dbData = {
+        table: 'object_characteristics',
+        name: objectData.name,
+        functional_class: objectData.functionalClass,
+        commissioning_date: objectData.commissioningDate || null,
+        address: objectData.address,
+        fire_resistance: objectData.fireResistance,
+        structural_fire_hazard: objectData.structuralFireHazard,
+        area: objectData.area ? parseFloat(objectData.area) : null,
+        floor_area: objectData.floorArea ? parseFloat(objectData.floorArea) : null,
+        height: objectData.height ? parseFloat(objectData.height) : null,
+        floors: objectData.floors ? parseInt(objectData.floors) : null,
+        volume: objectData.volume ? parseFloat(objectData.volume) : null,
+        outdoor_category: objectData.outdoorCategory,
+        building_category: objectData.buildingCategory,
+        workplaces: objectData.workplaces ? parseInt(objectData.workplaces) : null,
+        working_hours: objectData.workingHours,
+        protection_systems: objectData.protectionSystems,
+        photo: objectData.photo,
+      };
+
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(objectData),
+        body: JSON.stringify(dbData),
       });
 
       if (!response.ok) throw new Error('Failed to save');
