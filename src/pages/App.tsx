@@ -429,15 +429,16 @@ const AppPage = () => {
           {/* Боковая навигация */}
           <div className="w-80 min-h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500">
-              <div className="flex items-center gap-3 mb-2">
-                <Icon name="Flame" size={32} className="text-white" />
-                <h1 className="text-xl font-bold text-white">
-                  Система управления ПБ
-                </h1>
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/bucket/4ad57d25-eeff-4ea2-9c47-a108c700f08b.png"
+                  alt="Код безопасности РУСАЛ"
+                  className="h-10 object-contain brightness-0 invert"
+                />
               </div>
-              <p className="text-white/80 text-sm">
-                Управление пожарной безопасностью
-              </p>
+              <h1 className="text-sm font-semibold text-white/90 leading-snug">
+                Система управления<br/>пожарной безопасностью
+              </h1>
             </div>
             
             <div className="p-4">
