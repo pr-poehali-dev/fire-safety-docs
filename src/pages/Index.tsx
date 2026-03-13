@@ -42,14 +42,11 @@ const Index = () => {
               <span className="text-xs text-gray-500">Система управления ПБ</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <img
-              src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/logo-rusal.png"
-              alt="РУСАЛ"
-              className="h-8 object-contain opacity-80"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
+          <img
+            src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/bucket/52788c05-814d-443a-b962-066a244e4e19.png"
+            alt="ЭН+ | РУСАЛ | Моя Карьера"
+            className="h-12 md:h-14 object-contain"
+          />
         </header>
 
         {/* Hero */}
