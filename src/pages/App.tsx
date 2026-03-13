@@ -427,7 +427,7 @@ const AppPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
         <div className="flex">
           {/* Боковая навигация */}
-          <div className="w-80 min-h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
+          <div className="w-80 h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500">
               <div className="bg-white rounded-xl px-4 py-3 inline-block mb-3">
                 <img
