@@ -3,9 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface JournalSectionProps {
   sectionId: string;
@@ -33,6 +32,7 @@ export default function JournalSection({
   const [newEntry, setNewEntry] = useState<any>({});
   const [headerData, setHeaderData] = useState<any>({});
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -75,11 +75,14 @@ export default function JournalSection({
   };
 
   const handleAddEntry = () => {
+    const hasData = Object.values(newEntry).some(v => v && String(v).trim());
+    if (!hasData) return;
     const entry = { ...newEntry, id: Date.now(), createdAt: new Date().toISOString() };
     setEntries(prev => [...prev, entry]);
     onSave(entry);
     logActivity('Добавлена запись', Object.values(newEntry).slice(0, 2).join(', '));
     setNewEntry({});
+    setIsFormOpen(false);
   };
 
   const handleDeleteEntry = (id: number) => {
@@ -88,113 +91,138 @@ export default function JournalSection({
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded ${color} flex items-center justify-center`}>
-            <Icon name={icon as any} className="text-white" size={24} />
+          <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shadow-md`}>
+            <Icon name={icon as any} className="text-white" size={20} />
           </div>
           <div>
-            <CardTitle className="text-lg">{title}</CardTitle>
-            <CardDescription className="text-xs mt-1">
-              (п.54 Правил противопожарного режима в РФ)
-            </CardDescription>
+            <h3 className="font-semibold text-base leading-tight">{title}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">п.54 Правил противопожарного режима в РФ</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        {headerFields && headerFields.length > 0 && (
-          <div className="mb-6 p-4 bg-muted/30 rounded border border-border">
-            <div className="grid gap-4 md:grid-cols-2">
-              {headerFields.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {field.label}
-                  </Label>
+        <div className="flex items-center gap-2">
+          {lastSaved && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Icon name="Check" size={12} className="text-green-500" />
+              {lastSaved.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          <Badge variant="secondary" className="text-xs">{entries.length} записей</Badge>
+        </div>
+      </div>
+
+      {headerFields && headerFields.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-xl border border-blue-100">
+          {headerFields.map((field) => (
+            <div key={field.key} className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">{field.label}</Label>
+              <Input
+                type={field.type || 'text'}
+                value={headerData[field.key] || ''}
+                onChange={(e) => handleHeaderChange(field.key, e.target.value)}
+                className="h-9 text-sm bg-white border-blue-200/60 focus:border-blue-400 rounded-lg"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div className="space-y-2">
+          {entries.map((row, index) => (
+            <div
+              key={row.id || index}
+              className="group p-3 bg-white border border-gray-100 rounded-xl hover:border-gray-200 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-500">
+                  {index + 1}
+                </span>
+                <div className="flex-1 grid gap-x-4 gap-y-1" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 3)}, 1fr)` }}>
+                  {fields.map((field) => (
+                    <div key={field.key} className="min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5 truncate">{field.label}</p>
+                      <p className="text-sm leading-snug truncate" title={row[field.key] || '-'}>{row[field.key] || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                  onClick={() => handleDeleteEntry(row.id)}
+                >
+                  <Icon name="Trash2" size={14} />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {entries.length === 0 && !isFormOpen && (
+        <div className="text-center py-10 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50">
+          <Icon name="FileText" size={32} className="mx-auto text-gray-300 mb-2" />
+          <p className="text-sm text-muted-foreground">Записей пока нет</p>
+          <p className="text-xs text-muted-foreground mt-1">Нажмите кнопку ниже, чтобы добавить первую запись</p>
+        </div>
+      )}
+
+      {isFormOpen ? (
+        <Card className="border-blue-200 shadow-md">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Icon name="PlusCircle" size={16} className="text-blue-500" />
+              Новая запись
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {fields.map((field) => (
+                <div key={field.key} className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">{field.label}</Label>
                   <Input
-                    type={field.type || 'text'}
-                    value={headerData[field.key] || ''}
-                    onChange={(e) => handleHeaderChange(field.key, e.target.value)}
-                    className="font-mono text-sm"
+                    type={field.type === 'textarea' ? 'text' : (field.type || 'text')}
+                    value={newEntry[field.key] || ''}
+                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                    placeholder="Введите данные"
+                    className="h-9 text-sm rounded-lg"
                   />
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">№</TableHead>
-                {fields.map((field) => (
-                  <TableHead key={field.key} className="min-w-[200px]">
-                    {field.label}
-                  </TableHead>
-                ))}
-                <TableHead className="w-24">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entries.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-mono text-xs">{index + 1}</TableCell>
-                  {fields.map((field) => (
-                    <TableCell key={field.key} className="text-sm">
-                      {row[field.key] || '-'}
-                    </TableCell>
-                  ))}
-                  <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteEntry(row.id)}>
-                      <Icon name="Trash2" size={16} />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              <TableRow className="bg-muted/20">
-                <TableCell className="font-mono text-xs font-bold">+</TableCell>
-                {fields.map((field) => (
-                  <TableCell key={field.key}>
-                    {field.type === 'textarea' ? (
-                      <Textarea
-                        value={newEntry[field.key] || ''}
-                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                        placeholder="Введите данные"
-                        rows={2}
-                        className="font-mono text-sm"
-                      />
-                    ) : (
-                      <Input
-                        type={field.type || 'text'}
-                        value={newEntry[field.key] || ''}
-                        onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                        placeholder="Введите данные"
-                        className="font-mono text-sm"
-                      />
-                    )}
-                  </TableCell>
-                ))}
-                <TableCell>
-                  <Button onClick={handleAddEntry} size="sm" variant="default">
-                    <Icon name="Plus" size={16} />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Всего записей: {entries.length}</span>
-          {lastSaved && (
-            <span className="flex items-center gap-1">
-              <Icon name="Check" size={12} className="text-green-600" />
-              Сохранено: {lastSaved.toLocaleTimeString('ru-RU')}
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="flex gap-2 mt-4 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setIsFormOpen(false); setNewEntry({}); }}
+                className="text-xs"
+              >
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAddEntry}
+                className="text-xs gap-1.5"
+              >
+                <Icon name="Check" size={14} />
+                Сохранить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Button
+          variant="outline"
+          className="w-full border-dashed border-2 hover:border-blue-300 hover:bg-blue-50/50 text-muted-foreground hover:text-blue-600 transition-all h-10 rounded-xl"
+          onClick={() => setIsFormOpen(true)}
+        >
+          <Icon name="Plus" size={16} className="mr-2" />
+          Добавить запись
+        </Button>
+      )}
+    </div>
   );
 }
