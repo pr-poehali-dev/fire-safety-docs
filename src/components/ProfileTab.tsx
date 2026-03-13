@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect } from 'react';
 
@@ -13,6 +14,14 @@ interface ProfileData {
   position?: string;
   phone?: string;
   department?: string;
+}
+
+interface CertificateData {
+  id: number;
+  institution: string;
+  educationType: string;
+  trainingDate: string;
+  certificateNumber: string;
 }
 
 export default function ProfileTab() {
@@ -28,6 +37,9 @@ export default function ProfileTab() {
   });
 
   const [tempData, setTempData] = useState<ProfileData>(profileData);
+  const [certificates, setCertificates] = useState<CertificateData[]>([]);
+  const [newCert, setNewCert] = useState<Omit<CertificateData, 'id'>>({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' });
+  const [isCertFormOpen, setIsCertFormOpen] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('profileData');
@@ -48,6 +60,10 @@ export default function ProfileTab() {
       setProfileData(defaultData);
       setTempData(defaultData);
       localStorage.setItem('profileData', JSON.stringify(defaultData));
+    }
+    const storedCerts = localStorage.getItem('certificates');
+    if (storedCerts) {
+      setCertificates(JSON.parse(storedCerts));
     }
   }, []);
 
@@ -79,6 +95,32 @@ export default function ProfileTab() {
 
   const handleChange = (field: keyof ProfileData, value: string) => {
     setTempData({ ...tempData, [field]: value });
+  };
+
+  const handleAddCertificate = () => {
+    if (!newCert.institution && !newCert.certificateNumber) return;
+    const cert: CertificateData = { ...newCert, id: Date.now() };
+    const updated = [...certificates, cert];
+    setCertificates(updated);
+    localStorage.setItem('certificates', JSON.stringify(updated));
+    setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' });
+    setIsCertFormOpen(false);
+
+    const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
+    logs.push({
+      id: Date.now().toString(),
+      action: 'Добавлен сертификат',
+      section: 'Квалификация',
+      timestamp: new Date().toISOString(),
+      details: newCert.institution,
+    });
+    localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
+  };
+
+  const handleDeleteCertificate = (id: number) => {
+    const updated = certificates.filter(c => c.id !== id);
+    setCertificates(updated);
+    localStorage.setItem('certificates', JSON.stringify(updated));
   };
 
   return (
@@ -281,20 +323,134 @@ export default function ProfileTab() {
 
       <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 border-emerald-200 dark:border-emerald-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Icon name="Award" size={20} className="text-emerald-600" />
-            Квалификация и сертификаты
-          </CardTitle>
-          <CardDescription>Профессиональные достижения и документы</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Icon name="Award" size={20} className="text-emerald-600" />
+                Квалификация и сертификаты
+              </CardTitle>
+              <CardDescription>Профессиональные достижения и документы</CardDescription>
+            </div>
+            <Badge variant="secondary" className="text-xs">{certificates.length} записей</Badge>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Icon name="FileCheck" size={48} className="text-emerald-400 mb-4" />
-            <p className="text-muted-foreground mb-4">Раздел в разработке</p>
-            <Button variant="outline" disabled>
+        <CardContent className="space-y-4">
+          {certificates.length > 0 && (
+            <div className="space-y-2">
+              {certificates.map((cert) => (
+                <div key={cert.id} className="group p-4 bg-white dark:bg-slate-950 border border-emerald-100 dark:border-emerald-800 rounded-xl hover:shadow-sm transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0">
+                      <Icon name="GraduationCap" size={18} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Место обучения</p>
+                        <p className="text-sm font-medium">{cert.institution || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Образование</p>
+                        <p className="text-sm">{cert.educationType || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Дата обучения</p>
+                        <p className="text-sm">{cert.trainingDate ? new Date(cert.trainingDate).toLocaleDateString('ru-RU') : '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Номер удостоверения</p>
+                        <p className="text-sm font-mono">{cert.certificateNumber || '—'}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                      onClick={() => handleDeleteCertificate(cert.id)}
+                    >
+                      <Icon name="Trash2" size={14} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {certificates.length === 0 && !isCertFormOpen && (
+            <div className="text-center py-8 rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/30">
+              <Icon name="FileCheck" size={32} className="mx-auto text-emerald-300 mb-2" />
+              <p className="text-sm text-muted-foreground">Сертификатов пока нет</p>
+              <p className="text-xs text-muted-foreground mt-1">Добавьте сведения об обучении и квалификации</p>
+            </div>
+          )}
+
+          {isCertFormOpen ? (
+            <Card className="border-emerald-200 shadow-md">
+              <CardHeader className="pb-3 pt-4 px-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Icon name="PlusCircle" size={16} className="text-emerald-500" />
+                  Новый сертификат
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Место обучения</Label>
+                    <Input
+                      value={newCert.institution}
+                      onChange={(e) => setNewCert({ ...newCert, institution: e.target.value })}
+                      placeholder="Учебное заведение / учебный центр"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Образование</Label>
+                    <Input
+                      value={newCert.educationType}
+                      onChange={(e) => setNewCert({ ...newCert, educationType: e.target.value })}
+                      placeholder="Повышение квалификации / переподготовка"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Дата обучения</Label>
+                    <Input
+                      type="date"
+                      value={newCert.trainingDate}
+                      onChange={(e) => setNewCert({ ...newCert, trainingDate: e.target.value })}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Номер удостоверения</Label>
+                    <Input
+                      value={newCert.certificateNumber}
+                      onChange={(e) => setNewCert({ ...newCert, certificateNumber: e.target.value })}
+                      placeholder="№ удостоверения / сертификата"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4 justify-end">
+                  <Button variant="ghost" size="sm" onClick={() => { setIsCertFormOpen(false); setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' }); }} className="text-xs">
+                    Отмена
+                  </Button>
+                  <Button size="sm" onClick={handleAddCertificate} className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+                    <Icon name="Check" size={14} />
+                    Сохранить
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-2 border-emerald-300 hover:border-emerald-400 hover:bg-emerald-50/50 text-muted-foreground hover:text-emerald-600 transition-all h-10 rounded-xl"
+              onClick={() => setIsCertFormOpen(true)}
+            >
+              <Icon name="Plus" size={16} className="mr-2" />
               Добавить сертификат
             </Button>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
