@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -223,6 +223,16 @@ const AppPage = () => {
   const [activeJournalSubsection, setActiveJournalSubsection] = useState(journalSubsections[0].id);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [sidebarScrolled, setSidebarScrolled] = useState(false);
+  const [sidebarAtBottom, setSidebarAtBottom] = useState(false);
+
+  const handleSidebarScroll = useCallback(() => {
+    const el = sidebarRef.current;
+    if (!el) return;
+    setSidebarScrolled(el.scrollTop > 10);
+    setSidebarAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 10);
+  }, []);
 
   const [fireIncidents, setFireIncidents] = useState<any[]>([]);
 
@@ -365,16 +375,16 @@ const AppPage = () => {
         return (
           <div>
             <Tabs value={activeJournalSubsection} onValueChange={setActiveJournalSubsection}>
-              <div className="mb-6 overflow-x-auto">
-                <TabsList className="inline-flex gap-2 bg-transparent p-0">
+              <div className="mb-6">
+                <TabsList className="flex flex-wrap gap-1.5 bg-transparent p-0 h-auto">
                   {journalSubsections.map((subsection) => (
                     <TabsTrigger 
                       key={subsection.id} 
                       value={subsection.id} 
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 hover:bg-gray-50 transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 hover:bg-gray-50 transition-all text-xs"
                     >
-                      <Icon name={subsection.icon} size={16} />
-                      <span className="text-sm font-medium whitespace-nowrap">{subsection.title}</span>
+                      <Icon name={subsection.icon} size={14} />
+                      <span className="font-medium">{subsection.title}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -427,8 +437,11 @@ const AppPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
         <div className="flex">
           {/* Боковая навигация */}
-          <div className="w-80 h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500">
+          <div ref={sidebarRef} onScroll={handleSidebarScroll} className="w-80 h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
+            {sidebarScrolled && (
+              <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/10 to-transparent z-10 pointer-events-none" />
+            )}
+            <div className={`p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500 ${sidebarScrolled ? '-mt-4' : ''}`}>
               <div className="bg-white rounded-xl px-4 py-3 inline-block mb-3">
                 <img
                   src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/bucket/4ad57d25-eeff-4ea2-9c47-a108c700f08b.png"
@@ -472,6 +485,9 @@ const AppPage = () => {
                 </button>
               ))}
             </nav>
+            {!sidebarAtBottom && (
+              <div className="sticky bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+            )}
           </div>
 
           {/* Основной контент */}
