@@ -447,7 +447,7 @@ const AppPage = () => {
                 className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900 mb-4"
               >
                 <Icon name="ArrowLeft" size={20} />
-                <span>К презентации</span>
+                <span>На главную</span>
               </Button>
             </div>
 

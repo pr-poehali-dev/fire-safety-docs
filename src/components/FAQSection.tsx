@@ -335,6 +335,27 @@ const FAQSection = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="border border-gray-200 rounded-lg p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-100 p-2 rounded-lg">
+                    <Icon name="Presentation" size={22} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Презентация системы</p>
+                    <p className="text-sm text-muted-foreground">Обзор всех возможностей платформы</p>
+                  </div>
+                </div>
+                <a
+                  href="/presentation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Icon name="ExternalLink" size={16} />
+                  Открыть
+                </a>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
