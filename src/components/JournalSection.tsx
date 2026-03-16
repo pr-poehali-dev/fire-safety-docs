@@ -193,15 +193,14 @@ export default function JournalSection({
       </div>
 
       {headerFields && headerFields.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-xl border border-blue-100">
+        <div className="grid gap-4 sm:grid-cols-2 p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-md border border-blue-100">
           {headerFields.map((field) => (
-            <div key={field.key} className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">{field.label}</Label>
+            <div key={field.key} className="space-y-2">
+              <Label>{field.label}</Label>
               <Input
                 type={field.type || 'text'}
                 value={headerData[field.key] || ''}
                 onChange={(e) => handleHeaderChange(field.key, e.target.value)}
-                className="h-9 text-sm bg-white border-blue-200/60 focus:border-blue-400 rounded-lg"
               />
             </div>
           ))}
@@ -222,7 +221,7 @@ export default function JournalSection({
                 <div className="flex-1 grid gap-x-4 gap-y-1" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 3)}, 1fr)` }}>
                   {fields.map((field) => (
                     <div key={field.key} className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5 truncate">{field.label}</p>
+                      <p className="text-xs text-muted-foreground mb-0.5 truncate">{field.label}</p>
                       <p className="text-sm leading-snug truncate" title={row.entry_data[field.key] || '-'}>{row.entry_data[field.key] || '-'}</p>
                     </div>
                   ))}
@@ -258,16 +257,15 @@ export default function JournalSection({
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {fields.map((field) => (
-                <div key={field.key} className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">{field.label}</Label>
+                <div key={field.key} className="space-y-2">
+                  <Label>{field.label}</Label>
                   <Input
                     type={field.type === 'textarea' ? 'text' : (field.type || 'text')}
                     value={newEntry[field.key] || ''}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
                     placeholder="Введите данные"
-                    className="h-9 text-sm rounded-lg"
                   />
                 </div>
               ))}

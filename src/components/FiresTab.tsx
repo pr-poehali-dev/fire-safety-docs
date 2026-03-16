@@ -143,7 +143,7 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="new-date">Дата пожара *</Label>
                 <Input
                   id="new-date"
@@ -156,7 +156,7 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="new-location">Место пожара *</Label>
                 <Input
                   id="new-location"
@@ -166,7 +166,7 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="new-area">Площадь пожара (м²)</Label>
                 <Input
                   id="new-area"
@@ -178,7 +178,7 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="new-start-time">Время начала</Label>
                 <Input
                   id="new-start-time"

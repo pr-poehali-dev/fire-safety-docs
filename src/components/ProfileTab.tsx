@@ -220,8 +220,8 @@ export default function ProfileTab() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <Label htmlFor="fullName" className="flex items-center gap-2 mb-2">
                 <Icon name="User" size={16} className="text-indigo-600" />
@@ -235,7 +235,7 @@ export default function ProfileTab() {
                   placeholder="Фамилия Имя Отчество"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-lg font-medium">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.fullName || '—'}
                 </p>
               )}
@@ -257,7 +257,7 @@ export default function ProfileTab() {
                   }}
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.birthDate || '—'}
                 </p>
               )}
@@ -277,7 +277,7 @@ export default function ProfileTab() {
                   placeholder="example@mail.com"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.personalEmail || '—'}
                 </p>
               )}
@@ -293,12 +293,12 @@ export default function ProfileTab() {
                   id="education"
                   value={tempData.education}
                   onChange={(e) => handleChange('education', e.target.value)}
-                  className="w-full p-3 rounded-lg border bg-background text-sm resize-none"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   rows={3}
                   placeholder="Учебное заведение, специальность, год"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-sm leading-relaxed">
+                <p className="min-h-[80px] px-3 py-2 bg-muted/50 rounded-md border text-sm leading-relaxed">
                   {profileData.education || '—'}
                 </p>
               )}
@@ -317,7 +317,7 @@ export default function ProfileTab() {
                   placeholder="Должность"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.position || '—'}
                 </p>
               )}
@@ -337,7 +337,7 @@ export default function ProfileTab() {
                   placeholder="+7 (___) ___-__-__"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.phone || '—'}
                 </p>
               )}
@@ -356,7 +356,7 @@ export default function ProfileTab() {
                   placeholder="Название отдела"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {profileData.department || '—'}
                 </p>
               )}

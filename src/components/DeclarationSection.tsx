@@ -186,7 +186,7 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">1. Сведения о собственнике объекта защиты</CardTitle>

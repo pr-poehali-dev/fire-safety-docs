@@ -152,7 +152,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Наименование объекта *</Label>
               {isEditing ? (
@@ -163,7 +163,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Введите наименование"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-lg font-medium">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.name || '—'}
                 </p>
               )}
@@ -179,8 +179,8 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Введите адрес"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border flex items-center gap-2">
-                  <Icon name="MapPin" size={16} className="text-blue-600" />
+                <p className="h-10 px-3 flex items-center gap-2 bg-muted/50 rounded-md border text-sm">
+                  <Icon name="MapPin" size={16} className="text-blue-600 flex-shrink-0" />
                   {objectData.address || '—'}
                 </p>
               )}
@@ -196,7 +196,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Например: Ф1.1, Ф2.3"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.functionalClass || '—'}
                 </p>
               )}
@@ -212,7 +212,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   onChange={(e) => onInputChange('commissioningDate', e.target.value)}
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.commissioningDate || '—'}
                 </p>
               )}
@@ -228,7 +228,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Например: I, II, III, IV, V"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.fireResistance || '—'}
                 </p>
               )}
@@ -244,7 +244,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Например: С0, С1, С2, С3"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.structuralFireHazard || '—'}
                 </p>
               )}
@@ -261,7 +261,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="0"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.area ? `${objectData.area} м²` : '—'}
                 </p>
               )}
@@ -278,7 +278,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="0"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.floors || '—'}
                 </p>
               )}
@@ -295,7 +295,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="0"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.height ? `${objectData.height} м` : '—'}
                 </p>
               )}
@@ -311,7 +311,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Например: А, Б, В1, В2, Г, Д"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.buildingCategory || '—'}
                 </p>
               )}
@@ -328,7 +328,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="0"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.workplaces || '—'}
                 </p>
               )}
@@ -344,7 +344,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   placeholder="Например: 8:00 - 20:00"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
                   {objectData.workingHours || '—'}
                 </p>
               )}
@@ -353,7 +353,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -371,10 +371,10 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   value={objectData.protectionSystems}
                   onChange={(e) => onInputChange('protectionSystems', e.target.value)}
                   placeholder="АУПС, СОУЭ, АУПТ, Противодымная вентиляция и т.д."
-                  className="w-full p-3 border rounded-lg min-h-[100px] bg-white dark:bg-slate-950"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border whitespace-pre-wrap">
+                <p className="min-h-[80px] px-3 py-2 bg-muted/50 rounded-md border text-sm whitespace-pre-wrap">
                   {objectData.protectionSystems || '—'}
                 </p>
               )}
@@ -590,7 +590,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
             {risks.map((risk, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 p-3 bg-white dark:bg-slate-950 rounded-lg border"
+                className="flex items-start gap-3 h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm"
               >
                 <Badge className={getRiskColor(risk.level)}>{getRiskText(risk.level)}</Badge>
                 <p className="flex-1 text-sm">{risk.title}</p>
