@@ -4,7 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 interface ProfileData {
   fullName: string;
@@ -26,6 +28,9 @@ interface CertificateData {
 
 export default function ProfileTab() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [dbProfileId, setDbProfileId] = useState<number | null>(null);
   const [profileData, setProfileData] = useState<ProfileData>({
     fullName: '',
     birthDate: '',
@@ -41,51 +46,94 @@ export default function ProfileTab() {
   const [newCert, setNewCert] = useState<Omit<CertificateData, 'id'>>({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' });
   const [isCertFormOpen, setIsCertFormOpen] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('profileData');
-    if (stored) {
-      const data = JSON.parse(stored);
-      setProfileData(data);
-      setTempData(data);
-    } else {
-      const defaultData = {
-        fullName: 'Иванов Иван Иванович',
-        birthDate: '15.03.1985',
-        education: 'Высшее, Московский государственный технический университет им. Баумана, специальность: Пожарная безопасность',
-        personalEmail: 'ivanov.ii@example.com',
-        position: 'Инженер по пожарной безопасности',
-        phone: '+7 (999) 123-45-67',
-        department: 'Отдел безопасности',
-      };
-      setProfileData(defaultData);
-      setTempData(defaultData);
-      localStorage.setItem('profileData', JSON.stringify(defaultData));
-    }
-    const storedCerts = localStorage.getItem('certificates');
-    if (storedCerts) {
-      setCertificates(JSON.parse(storedCerts));
+  const loadFromDb = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [profileRes, certsRes] = await Promise.all([
+        fetch(`${API_URL}?table=user_profile`),
+        fetch(`${API_URL}?table=certificates`),
+      ]);
+      const profiles = await profileRes.json();
+      const certs = await certsRes.json();
+
+      if (profiles.length > 0) {
+        const p = profiles[0];
+        setDbProfileId(p.id);
+        const data: ProfileData = {
+          fullName: p.full_name || '',
+          birthDate: p.birth_date || '',
+          education: p.education || '',
+          personalEmail: p.personal_email || '',
+          position: p.position || '',
+          phone: p.phone || '',
+          department: p.department || '',
+        };
+        setProfileData(data);
+        setTempData(data);
+      }
+
+      if (certs.length > 0) {
+        setCertificates(certs.map((c: Record<string, string | number>) => ({
+          id: c.id,
+          institution: c.institution || '',
+          educationType: c.education_type || '',
+          trainingDate: c.training_date || '',
+          certificateNumber: c.certificate_number || '',
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading profile from DB:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadFromDb();
+  }, [loadFromDb]);
 
   const handleEdit = () => {
     setIsEditing(true);
     setTempData(profileData);
   };
 
-  const handleSave = () => {
-    setProfileData(tempData);
-    localStorage.setItem('profileData', JSON.stringify(tempData));
-    setIsEditing(false);
-    
-    const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
-    logs.push({
-      id: Date.now().toString(),
-      action: 'Обновлен профиль',
-      section: 'Личный кабинет',
-      timestamp: new Date().toISOString(),
-      details: tempData.fullName,
-    });
-    localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        table: 'user_profile',
+        full_name: tempData.fullName,
+        birth_date: tempData.birthDate,
+        education: tempData.education,
+        personal_email: tempData.personalEmail,
+        position: tempData.position || '',
+        phone: tempData.phone || '',
+        department: tempData.department || '',
+      };
+
+      if (dbProfileId) {
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, id: dbProfileId }),
+        });
+      } else {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await res.json();
+        setDbProfileId(result.id);
+      }
+
+      setProfileData(tempData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,31 +145,49 @@ export default function ProfileTab() {
     setTempData({ ...tempData, [field]: value });
   };
 
-  const handleAddCertificate = () => {
+  const handleAddCertificate = async () => {
     if (!newCert.institution && !newCert.certificateNumber) return;
-    const cert: CertificateData = { ...newCert, id: Date.now() };
-    const updated = [...certificates, cert];
-    setCertificates(updated);
-    localStorage.setItem('certificates', JSON.stringify(updated));
-    setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' });
-    setIsCertFormOpen(false);
-
-    const logs = JSON.parse(localStorage.getItem('activity_logs') || '[]');
-    logs.push({
-      id: Date.now().toString(),
-      action: 'Добавлен сертификат',
-      section: 'Квалификация',
-      timestamp: new Date().toISOString(),
-      details: newCert.institution,
-    });
-    localStorage.setItem('activity_logs', JSON.stringify(logs.slice(-100)));
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'certificates',
+          institution: newCert.institution,
+          education_type: newCert.educationType,
+          training_date: newCert.trainingDate,
+          certificate_number: newCert.certificateNumber,
+        }),
+      });
+      const result = await res.json();
+      const cert: CertificateData = { ...newCert, id: result.id };
+      setCertificates(prev => [...prev, cert]);
+      setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' });
+      setIsCertFormOpen(false);
+    } catch (error) {
+      console.error('Error adding certificate:', error);
+    }
   };
 
-  const handleDeleteCertificate = (id: number) => {
-    const updated = certificates.filter(c => c.id !== id);
-    setCertificates(updated);
-    localStorage.setItem('certificates', JSON.stringify(updated));
+  const handleDeleteCertificate = async (id: number) => {
+    try {
+      await fetch(`${API_URL}?table=certificates&id=${id}`, { method: 'DELETE' });
+      setCertificates(prev => prev.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Error deleting certificate:', error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Icon name="Loader2" size={20} className="animate-spin" />
+          <span>Загрузка данных...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom duration-700">
@@ -142,8 +208,8 @@ export default function ProfileTab() {
               </Button>
             ) : (
               <div className="flex gap-2">
-                <Button onClick={handleSave} className="gap-2">
-                  <Icon name="Check" size={16} />
+                <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+                  {isSaving ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Check" size={16} />}
                   Сохранить
                 </Button>
                 <Button onClick={handleCancel} variant="outline" className="gap-2">
@@ -170,7 +236,7 @@ export default function ProfileTab() {
                 />
               ) : (
                 <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-lg font-medium">
-                  {profileData.fullName}
+                  {profileData.fullName || '—'}
                 </p>
               )}
             </div>
@@ -192,7 +258,7 @@ export default function ProfileTab() {
                 />
               ) : (
                 <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                  {profileData.birthDate}
+                  {profileData.birthDate || '—'}
                 </p>
               )}
             </div>
@@ -212,7 +278,7 @@ export default function ProfileTab() {
                 />
               ) : (
                 <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                  {profileData.personalEmail}
+                  {profileData.personalEmail || '—'}
                 </p>
               )}
             </div>
@@ -227,228 +293,180 @@ export default function ProfileTab() {
                   id="education"
                   value={tempData.education}
                   onChange={(e) => handleChange('education', e.target.value)}
-                  placeholder="Укажите уровень образования, учебное заведение, специальность"
-                  className="w-full p-3 border rounded-lg min-h-[80px] bg-white dark:bg-slate-950"
+                  className="w-full p-3 rounded-lg border bg-background text-sm resize-none"
+                  rows={3}
+                  placeholder="Учебное заведение, специальность, год"
                 />
               ) : (
-                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                  {profileData.education}
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border text-sm leading-relaxed">
+                  {profileData.education || '—'}
                 </p>
               )}
             </div>
-          </div>
 
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Icon name="Briefcase" size={20} className="text-indigo-600" />
-              Дополнительная информация
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="position" className="flex items-center gap-2 mb-2">
-                  <Icon name="BadgeCheck" size={16} className="text-indigo-600" />
-                  Должность
-                </Label>
-                {isEditing ? (
-                  <Input
-                    id="position"
-                    value={tempData.position || ''}
-                    onChange={(e) => handleChange('position', e.target.value)}
-                    placeholder="Ваша должность"
-                  />
-                ) : (
-                  <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                    {profileData.position || '—'}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="phone" className="flex items-center gap-2 mb-2">
-                  <Icon name="Phone" size={16} className="text-indigo-600" />
-                  Телефон
-                </Label>
-                {isEditing ? (
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={tempData.phone || ''}
-                    onChange={(e) => handleChange('phone', e.target.value)}
-                    placeholder="+7 (___) ___-__-__"
-                  />
-                ) : (
-                  <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                    {profileData.phone || '—'}
-                  </p>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <Label htmlFor="department" className="flex items-center gap-2 mb-2">
-                  <Icon name="Building2" size={16} className="text-indigo-600" />
-                  Отдел/Подразделение
-                </Label>
-                {isEditing ? (
-                  <Input
-                    id="department"
-                    value={tempData.department || ''}
-                    onChange={(e) => handleChange('department', e.target.value)}
-                    placeholder="Название отдела"
-                  />
-                ) : (
-                  <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
-                    {profileData.department || '—'}
-                  </p>
-                )}
-              </div>
+            <div>
+              <Label htmlFor="position" className="flex items-center gap-2 mb-2">
+                <Icon name="Briefcase" size={16} className="text-indigo-600" />
+                Должность
+              </Label>
+              {isEditing ? (
+                <Input
+                  id="position"
+                  value={tempData.position}
+                  onChange={(e) => handleChange('position', e.target.value)}
+                  placeholder="Должность"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {profileData.position || '—'}
+                </p>
+              )}
             </div>
-          </div>
 
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex gap-3">
-              <Icon name="Info" size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  Поля, отмеченные звездочкой (*), обязательны для заполнения
+            <div>
+              <Label htmlFor="phone" className="flex items-center gap-2 mb-2">
+                <Icon name="Phone" size={16} className="text-indigo-600" />
+                Телефон
+              </Label>
+              {isEditing ? (
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={tempData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  placeholder="+7 (___) ___-__-__"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {profileData.phone || '—'}
                 </p>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Ваши персональные данные надежно защищены и используются только для ведения учета
-                  специалистов по пожарной безопасности.
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="department" className="flex items-center gap-2 mb-2">
+                <Icon name="Building2" size={16} className="text-indigo-600" />
+                Отдел / Подразделение
+              </Label>
+              {isEditing ? (
+                <Input
+                  id="department"
+                  value={tempData.department}
+                  onChange={(e) => handleChange('department', e.target.value)}
+                  placeholder="Название отдела"
+                />
+              ) : (
+                <p className="p-3 bg-white dark:bg-slate-950 rounded-lg border">
+                  {profileData.department || '—'}
                 </p>
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 border-emerald-200 dark:border-emerald-800">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Award" size={20} className="text-emerald-600" />
-                Квалификация и сертификаты
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Icon name="Award" size={20} className="text-amber-500" />
+                Квалификация и обучение
               </CardTitle>
-              <CardDescription>Профессиональные достижения и документы</CardDescription>
+              <CardDescription>Удостоверения, сертификаты, свидетельства</CardDescription>
             </div>
-            <Badge variant="secondary" className="text-xs">{certificates.length} записей</Badge>
+            <Badge variant="secondary">{certificates.length} записей</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {certificates.length > 0 && (
-            <div className="space-y-2">
-              {certificates.map((cert) => (
-                <div key={cert.id} className="group p-4 bg-white dark:bg-slate-950 border border-emerald-100 dark:border-emerald-800 rounded-xl hover:shadow-sm transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0">
-                      <Icon name="GraduationCap" size={18} className="text-emerald-600" />
-                    </div>
-                    <div className="flex-1 grid sm:grid-cols-2 gap-x-6 gap-y-2">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Место обучения</p>
-                        <p className="text-sm font-medium">{cert.institution || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Образование</p>
-                        <p className="text-sm">{cert.educationType || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Дата обучения</p>
-                        <p className="text-sm">{cert.trainingDate ? new Date(cert.trainingDate).toLocaleDateString('ru-RU') : '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Номер удостоверения</p>
-                        <p className="text-sm font-mono">{cert.certificateNumber || '—'}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
-                      onClick={() => handleDeleteCertificate(cert.id)}
-                    >
-                      <Icon name="Trash2" size={14} />
-                    </Button>
-                  </div>
+          {certificates.map((cert) => (
+            <div key={cert.id} className="group flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center flex-shrink-0">
+                <Icon name="FileText" size={18} className="text-amber-600" />
+              </div>
+              <div className="flex-1 grid sm:grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Место обучения</p>
+                  <p className="font-medium">{cert.institution || '—'}</p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-xs text-muted-foreground">Образование</p>
+                  <p>{cert.educationType || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Дата обучения</p>
+                  <p>{cert.trainingDate || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Номер удостоверения</p>
+                  <p>{cert.certificateNumber || '—'}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 hover:bg-red-50"
+                onClick={() => handleDeleteCertificate(cert.id)}
+              >
+                <Icon name="Trash2" size={16} />
+              </Button>
             </div>
-          )}
-
-          {certificates.length === 0 && !isCertFormOpen && (
-            <div className="text-center py-8 rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/30">
-              <Icon name="FileCheck" size={32} className="mx-auto text-emerald-300 mb-2" />
-              <p className="text-sm text-muted-foreground">Сертификатов пока нет</p>
-              <p className="text-xs text-muted-foreground mt-1">Добавьте сведения об обучении и квалификации</p>
-            </div>
-          )}
+          ))}
 
           {isCertFormOpen ? (
-            <Card className="border-emerald-200 shadow-md">
-              <CardHeader className="pb-3 pt-4 px-4">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Icon name="PlusCircle" size={16} className="text-emerald-500" />
-                  Новый сертификат
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Место обучения</Label>
-                    <Input
-                      value={newCert.institution}
-                      onChange={(e) => setNewCert({ ...newCert, institution: e.target.value })}
-                      placeholder="Учебное заведение / учебный центр"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Образование</Label>
-                    <Input
-                      value={newCert.educationType}
-                      onChange={(e) => setNewCert({ ...newCert, educationType: e.target.value })}
-                      placeholder="Повышение квалификации / переподготовка"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Дата обучения</Label>
-                    <Input
-                      type="date"
-                      value={newCert.trainingDate}
-                      onChange={(e) => setNewCert({ ...newCert, trainingDate: e.target.value })}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Номер удостоверения</Label>
-                    <Input
-                      value={newCert.certificateNumber}
-                      onChange={(e) => setNewCert({ ...newCert, certificateNumber: e.target.value })}
-                      placeholder="№ удостоверения / сертификата"
-                      className="h-9 text-sm"
-                    />
-                  </div>
+            <div className="p-4 border-2 border-dashed border-amber-200 rounded-xl space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Место обучения</Label>
+                  <Input
+                    value={newCert.institution}
+                    onChange={(e) => setNewCert({ ...newCert, institution: e.target.value })}
+                    placeholder="Учебный центр / организация"
+                  />
                 </div>
-                <div className="flex gap-2 mt-4 justify-end">
-                  <Button variant="ghost" size="sm" onClick={() => { setIsCertFormOpen(false); setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' }); }} className="text-xs">
-                    Отмена
-                  </Button>
-                  <Button size="sm" onClick={handleAddCertificate} className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-                    <Icon name="Check" size={14} />
-                    Сохранить
-                  </Button>
+                <div className="space-y-2">
+                  <Label>Образование</Label>
+                  <Input
+                    value={newCert.educationType}
+                    onChange={(e) => setNewCert({ ...newCert, educationType: e.target.value })}
+                    placeholder="Тип обучения"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+                <div className="space-y-2">
+                  <Label>Дата обучения</Label>
+                  <Input
+                    type="date"
+                    value={newCert.trainingDate}
+                    onChange={(e) => setNewCert({ ...newCert, trainingDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Номер удостоверения</Label>
+                  <Input
+                    value={newCert.certificateNumber}
+                    onChange={(e) => setNewCert({ ...newCert, certificateNumber: e.target.value })}
+                    placeholder="Серия и номер"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" onClick={() => { setIsCertFormOpen(false); setNewCert({ institution: '', educationType: '', trainingDate: '', certificateNumber: '' }); }}>
+                  Отмена
+                </Button>
+                <Button onClick={handleAddCertificate} className="gap-2">
+                  <Icon name="Check" size={16} />
+                  Добавить
+                </Button>
+              </div>
+            </div>
           ) : (
             <Button
               variant="outline"
-              className="w-full border-dashed border-2 border-emerald-300 hover:border-emerald-400 hover:bg-emerald-50/50 text-muted-foreground hover:text-emerald-600 transition-all h-10 rounded-xl"
+              className="w-full border-dashed border-amber-300 text-amber-600 hover:bg-amber-50 gap-2"
               onClick={() => setIsCertFormOpen(true)}
             >
-              <Icon name="Plus" size={16} className="mr-2" />
-              Добавить сертификат
+              <Icon name="Plus" size={16} />
+              Добавить удостоверение
             </Button>
           )}
         </CardContent>

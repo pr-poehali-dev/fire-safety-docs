@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
+
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 interface ObjectData {
   name: string;
@@ -23,8 +25,53 @@ interface DeclarationProps {
   objectData: ObjectData;
 }
 
+interface DeclarationData {
+  owner: string;
+  ogrn: string;
+  inn: string;
+  location: string;
+  postalEmail: string;
+  phone: string;
+  commissioning: string;
+  fireResistance: string;
+  constructionClass: string;
+  functionalClass: string;
+  buildingHeight: string;
+  floorArea: string;
+  buildingVolume: string;
+  floors: string;
+  categoryOutdoor: string;
+  protectionSystems: string;
+}
+
+const fieldToColumn: Record<string, string> = {
+  owner: 'owner',
+  ogrn: 'ogrn',
+  inn: 'inn',
+  location: 'location',
+  postalEmail: 'postal_email',
+  phone: 'phone',
+  commissioning: 'commissioning',
+  fireResistance: 'fire_resistance',
+  constructionClass: 'construction_class',
+  functionalClass: 'functional_class',
+  buildingHeight: 'building_height',
+  floorArea: 'floor_area',
+  buildingVolume: 'building_volume',
+  floors: 'floors',
+  categoryOutdoor: 'category_outdoor',
+  protectionSystems: 'protection_systems',
+};
+
+const columnToField: Record<string, string> = Object.fromEntries(
+  Object.entries(fieldToColumn).map(([k, v]) => [v, k])
+);
+
 export default function DeclarationSection({ objectData }: DeclarationProps) {
-  const [declarationData, setDeclarationData] = useState({
+  const [dbId, setDbId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [declarationData, setDeclarationData] = useState<DeclarationData>({
     owner: '',
     ogrn: '',
     inn: '',
@@ -43,13 +90,84 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
     protectionSystems: objectData.protectionSystems || '',
   });
 
+  const loadFromDb = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}?table=declarations`);
+      const rows = await res.json();
+      if (rows.length > 0) {
+        const row = rows[0] as Record<string, string | number>;
+        setDbId(row.id as number);
+        const loaded: Record<string, string> = {};
+        for (const [col, val] of Object.entries(row)) {
+          const fieldName = columnToField[col];
+          if (fieldName && val) {
+            loaded[fieldName] = String(val);
+          }
+        }
+        setDeclarationData(prev => ({ ...prev, ...loaded }));
+      }
+    } catch (error) {
+      console.error('Error loading declaration from DB:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFromDb();
+  }, [loadFromDb]);
+
   const handleInputChange = (field: string, value: string) => {
     setDeclarationData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleGenerateDeclaration = () => {
-    alert('Декларация сформирована! (функция в разработке)');
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload: Record<string, string | number> = { table: 'declarations' };
+      for (const [field, col] of Object.entries(fieldToColumn)) {
+        payload[col] = declarationData[field as keyof DeclarationData];
+      }
+
+      if (dbId) {
+        payload.id = dbId;
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await res.json();
+        setDbId(result.id);
+      }
+    } catch (error) {
+      console.error('Error saving declaration:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const handleGenerateDeclaration = () => {
+    handleSave();
+    alert('Декларация сохранена и сформирована! (экспорт в PDF в разработке)');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Icon name="Loader2" size={20} className="animate-spin" />
+          <span>Загрузка декларации...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -58,10 +176,14 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
           <div className="w-12 h-12 rounded bg-orange-500 flex items-center justify-center">
             <Icon name="FileCheck" className="text-white" size={24} />
           </div>
-          <div>
+          <div className="flex-1">
             <CardTitle>Декларация пожарной безопасности</CardTitle>
             <CardDescription>Формирование декларации в соответствии с требованиями</CardDescription>
           </div>
+          <Button onClick={handleSave} variant="outline" className="gap-2" disabled={isSaving}>
+            {isSaving ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Save" size={16} />}
+            Сохранить
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -231,9 +353,7 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoryOutdoor">
-                    Категория наружных установок по пожарной опасности, категория зданий
-                  </Label>
+                  <Label htmlFor="categoryOutdoor">Категория наружных установок</Label>
                   <Input
                     id="categoryOutdoor"
                     value={declarationData.categoryOutdoor}
@@ -244,14 +364,12 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="protectionSystems">
-                  Перечень и тип систем противопожарной защиты
-                </Label>
+                <Label htmlFor="protectionSystems">Перечень систем противопожарной защиты</Label>
                 <Textarea
                   id="protectionSystems"
                   value={declarationData.protectionSystems}
                   onChange={(e) => handleInputChange('protectionSystems', e.target.value)}
-                  placeholder="Системы: противодымной защиты, пожарной сигнализации, пожаротушения, оповещения и управления эвакуацией, внутренний и наружный противопожарные водопроводы"
+                  placeholder="Опишите системы защиты"
                   rows={4}
                 />
               </div>
@@ -259,8 +377,8 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" onClick={handleGenerateDeclaration}>
-          <Icon name="FileDown" size={18} className="mr-2" />
+        <Button size="lg" className="w-full gap-2" onClick={handleGenerateDeclaration}>
+          <Icon name="FileCheck" size={20} />
           Сформировать декларацию ПБ
         </Button>
       </CardContent>
