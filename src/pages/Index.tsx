@@ -72,14 +72,34 @@ const Index = () => {
               </p>
             </div>
 
-            <Button
-              onClick={handleEnterSystem}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-6 text-lg rounded-xl shadow-lg shadow-blue-200 transition-all"
-            >
-              <Icon name="LogIn" size={22} className="mr-2" />
-              Войти в систему
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button
+                onClick={handleEnterSystem}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-6 text-lg rounded-xl shadow-lg shadow-blue-200 transition-all"
+              >
+                <Icon name="LogIn" size={22} className="mr-2" />
+                Войти в систему
+              </Button>
+              <Button
+                onClick={() => navigate('/technical-spec')}
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all"
+              >
+                <Icon name="FileText" size={22} className="mr-2" />
+                Техническое задание
+              </Button>
+              <Button
+                onClick={() => navigate('/presentation')}
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all"
+              >
+                <Icon name="Presentation" size={22} className="mr-2" />
+                Презентация
+              </Button>
+            </div>
 
             {/* Возможности */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
