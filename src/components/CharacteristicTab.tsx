@@ -5,7 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
+const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 interface ObjectData {
   name: string;
@@ -28,22 +31,24 @@ interface ObjectData {
 }
 
 interface ProtectionSystem {
-  id: string;
-  name: string;
-  commissioningDate: string;
+  id: number;
+  system_name: string;
+  system_key: string;
+  commissioning_date: string;
   project: string;
-  complexTests: string;
+  complex_tests: string;
   condition: string;
 }
 
 interface RoomCategory {
-  id: string;
+  id: number | string;
   name: string;
   area: string;
   category: string;
-  hasLVZH: boolean;
-  hasAPS: boolean;
-  hasAUPT: boolean;
+  has_lvzh: boolean;
+  has_aps: boolean;
+  has_aupt: boolean;
+  _isNew?: boolean;
 }
 
 interface CharacteristicTabProps {
@@ -53,15 +58,6 @@ interface CharacteristicTabProps {
 }
 
 const SERVICE_LIFE_YEARS = 10;
-
-const defaultSystems: ProtectionSystem[] = [
-  { id: '1', name: 'АПС (автоматическая пожарная сигнализация)', commissioningDate: '', project: '', complexTests: '', condition: '' },
-  { id: '2', name: 'СОУЭ (система оповещения и управления эвакуацией)', commissioningDate: '', project: '', complexTests: '', condition: '' },
-  { id: '3', name: 'АУПТ (автоматическая установка пожаротушения)', commissioningDate: '', project: '', complexTests: '', condition: '' },
-  { id: '4', name: 'Противопожарное водоснабжение', commissioningDate: '', project: '', complexTests: '', condition: '' },
-  { id: '5', name: 'Внутренний противопожарный водопровод (ВПВ)', commissioningDate: '', project: '', complexTests: '', condition: '' },
-  { id: '6', name: 'Наружный противопожарный водопровод', commissioningDate: '', project: '', complexTests: '', condition: '' },
-];
 
 function getServiceLifeInfo(dateStr: string) {
   if (!dateStr) return null;
@@ -83,38 +79,76 @@ function getServiceLifeInfo(dateStr: string) {
   return { expired: false, text: `Осталось ${years} г. ${months} мес.`, color: 'text-green-600', badge: 'bg-green-500' };
 }
 
-const conditionOptions = [
-  'Исправна',
-  'Требует ремонта',
-  'Неисправна',
-  'На обслуживании',
-  'Не установлена',
-];
-
+const conditionOptions = ['Исправна', 'Требует ремонта', 'Неисправна', 'На обслуживании', 'Не установлена'];
 const categoryOptions = ['А', 'Б', 'В1', 'В2', 'В3', 'В4', 'Г', 'Д'];
 
 export default function CharacteristicTab({ objectData, onSave, onInputChange }: CharacteristicTabProps) {
+  const { toast } = useToast();
   const [objectPhoto, setObjectPhoto] = useState<string | null>(objectData.photo || null);
   const [isEditing, setIsEditing] = useState(false);
-  const [protectionSystems, setProtectionSystems] = useState<ProtectionSystem[]>(defaultSystems);
+  const [protectionSystems, setProtectionSystems] = useState<ProtectionSystem[]>([]);
   const [rooms, setRooms] = useState<RoomCategory[]>([]);
   const [isEditingSystems, setIsEditingSystems] = useState(false);
   const [isEditingRooms, setIsEditingRooms] = useState(false);
+  const [savingSystems, setSavingSystems] = useState(false);
+  const [savingRooms, setSavingRooms] = useState(false);
+  const [loadingSystems, setLoadingSystems] = useState(true);
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
   const journalCompletion = 92;
-
-  const mainIndicators = {
-    tasksCompleted: '47 из 52',
-    avgResponseTime: '4.2 мин',
-    uptime: '99.8%',
-    alertsThisMonth: 3,
-  };
-
+  const mainIndicators = { tasksCompleted: '47 из 52', avgResponseTime: '4.2 мин', uptime: '99.8%', alertsThisMonth: 3 };
   const risks = [
     { level: 'high' as const, title: 'Устаревшее оборудование АУПТ в секторе B' },
     { level: 'medium' as const, title: 'Требуется обновление ПО пожарной сигнализации' },
     { level: 'low' as const, title: 'Планируется замена резервного источника питания' },
   ];
+
+  const fetchSystems = useCallback(async () => {
+    setLoadingSystems(true);
+    try {
+      const res = await fetch(`${API_URL}?table=protection_systems`);
+      if (!res.ok) throw new Error('fetch error');
+      const data = await res.json();
+      setProtectionSystems(data.map((row: Record<string, string>) => ({
+        ...row,
+        commissioning_date: row.commissioning_date || '',
+        project: row.project || '',
+        complex_tests: row.complex_tests || '',
+        condition: row.condition || '',
+      })));
+    } catch (e) {
+      console.error('Error loading protection systems:', e);
+    } finally {
+      setLoadingSystems(false);
+    }
+  }, []);
+
+  const fetchRooms = useCallback(async () => {
+    setLoadingRooms(true);
+    try {
+      const res = await fetch(`${API_URL}?table=rooms_categories`);
+      if (!res.ok) throw new Error('fetch error');
+      const data = await res.json();
+      setRooms(data.map((row: Record<string, unknown>) => ({
+        id: row.id,
+        name: row.name || '',
+        area: row.area ? String(row.area) : '',
+        category: row.category || '',
+        has_lvzh: !!row.has_lvzh,
+        has_aps: !!row.has_aps,
+        has_aupt: !!row.has_aupt,
+      })));
+    } catch (e) {
+      console.error('Error loading rooms:', e);
+    } finally {
+      setLoadingRooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSystems();
+    fetchRooms();
+  }, [fetchSystems, fetchRooms]);
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -150,37 +184,112 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
     setIsEditing(false);
   };
 
-  const updateSystem = (id: string, field: keyof ProtectionSystem, value: string) => {
+  const updateSystem = (id: number, field: string, value: string) => {
     setProtectionSystems(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
+  const saveSystems = async () => {
+    setSavingSystems(true);
+    try {
+      for (const sys of protectionSystems) {
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'protection_systems',
+            id: sys.id,
+            commissioning_date: sys.commissioning_date || null,
+            project: sys.project || null,
+            complex_tests: sys.complex_tests || null,
+            condition: sys.condition || null,
+          }),
+        });
+      }
+      toast({ title: 'Сохранено', description: 'Данные систем противопожарной защиты обновлены' });
+      setIsEditingSystems(false);
+    } catch (e) {
+      console.error('Error saving systems:', e);
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить системы', variant: 'destructive' });
+    } finally {
+      setSavingSystems(false);
+    }
+  };
+
   const addRoom = () => {
+    const tempId = `new_${Date.now()}`;
     setRooms(prev => [...prev, {
-      id: Date.now().toString(),
+      id: tempId,
       name: '',
       area: '',
       category: '',
-      hasLVZH: false,
-      hasAPS: false,
-      hasAUPT: false,
+      has_lvzh: false,
+      has_aps: false,
+      has_aupt: false,
+      _isNew: true,
     }]);
+    if (!isEditingRooms) setIsEditingRooms(true);
   };
 
-  const updateRoom = (id: string, field: keyof RoomCategory, value: string | boolean) => {
+  const updateRoom = (id: number | string, field: string, value: string | boolean) => {
     setRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
 
-  const removeRoom = (id: string) => {
+  const removeRoom = async (id: number | string) => {
+    const room = rooms.find(r => r.id === id);
+    if (room && !room._isNew) {
+      try {
+        await fetch(`${API_URL}?table=rooms_categories&id=${id}`, { method: 'DELETE' });
+      } catch (e) {
+        console.error('Error deleting room:', e);
+      }
+    }
     setRooms(prev => prev.filter(r => r.id !== id));
   };
 
-  const renderField = (id: string, value: string, onChange: (v: string) => void, placeholder: string, type?: string) => {
+  const saveRooms = async () => {
+    setSavingRooms(true);
+    try {
+      for (const room of rooms) {
+        const payload = {
+          table: 'rooms_categories',
+          name: room.name,
+          area: room.area ? parseFloat(room.area) : null,
+          category: room.category || null,
+          has_lvzh: room.has_lvzh,
+          has_aps: room.has_aps,
+          has_aupt: room.has_aupt,
+        };
+
+        if (room._isNew) {
+          await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await fetch(API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, id: room.id }),
+          });
+        }
+      }
+      toast({ title: 'Сохранено', description: 'Перечень помещений обновлён' });
+      setIsEditingRooms(false);
+      fetchRooms();
+    } catch (e) {
+      console.error('Error saving rooms:', e);
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить помещения', variant: 'destructive' });
+    } finally {
+      setSavingRooms(false);
+    }
+  };
+
+  const renderField = (_id: string, value: string, onChange: (v: string) => void, placeholder: string, type?: string) => {
     return isEditing ? (
       <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'} />
     ) : (
-      <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
-        {value || '—'}
-      </p>
+      <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">{value || '—'}</p>
     );
   };
 
@@ -218,12 +327,11 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
         <CardContent>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Наименование объекта *</Label>
+              <Label>Наименование объекта *</Label>
               {renderField('name', objectData.name, (v) => onInputChange('name', v), 'Введите наименование')}
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="address">Адрес объекта *</Label>
+              <Label>Адрес объекта *</Label>
               {isEditing ? (
                 <Input value={objectData.address} onChange={(e) => onInputChange('address', e.target.value)} placeholder="Введите адрес" />
               ) : (
@@ -233,70 +341,54 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                 </p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label>Класс функциональной пожарной опасности</Label>
               {renderField('functionalClass', objectData.functionalClass, (v) => onInputChange('functionalClass', v), 'Например: Ф1.1, Ф2.3')}
             </div>
-
             <div className="space-y-2">
               <Label>Дата ввода в эксплуатацию</Label>
               {isEditing ? (
                 <Input type="date" value={objectData.commissioningDate} onChange={(e) => onInputChange('commissioningDate', e.target.value)} />
               ) : (
-                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
-                  {objectData.commissioningDate || '—'}
-                </p>
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">{objectData.commissioningDate || '—'}</p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label>Степень огнестойкости</Label>
               {renderField('fireResistance', objectData.fireResistance, (v) => onInputChange('fireResistance', v), 'Например: I, II, III, IV, V')}
             </div>
-
             <div className="space-y-2">
               <Label>Класс конструктивной пожарной опасности</Label>
               {renderField('structuralFireHazard', objectData.structuralFireHazard, (v) => onInputChange('structuralFireHazard', v), 'Например: С0, С1, С2, С3')}
             </div>
-
             <div className="space-y-2">
               <Label>Общая площадь (м²)</Label>
               {isEditing ? (
                 <Input type="number" value={objectData.area} onChange={(e) => onInputChange('area', e.target.value)} placeholder="0" />
               ) : (
-                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
-                  {objectData.area ? `${objectData.area} м²` : '—'}
-                </p>
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">{objectData.area ? `${objectData.area} м²` : '—'}</p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label>Количество этажей</Label>
               {renderField('floors', objectData.floors, (v) => onInputChange('floors', v), '0', 'number')}
             </div>
-
             <div className="space-y-2">
               <Label>Высота здания (м)</Label>
               {isEditing ? (
                 <Input type="number" value={objectData.height} onChange={(e) => onInputChange('height', e.target.value)} placeholder="0" />
               ) : (
-                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">
-                  {objectData.height ? `${objectData.height} м` : '—'}
-                </p>
+                <p className="h-10 px-3 flex items-center bg-muted/50 rounded-md border text-sm">{objectData.height ? `${objectData.height} м` : '—'}</p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label>Категория здания по взрывопожарной опасности</Label>
               {renderField('buildingCategory', objectData.buildingCategory, (v) => onInputChange('buildingCategory', v), 'Например: А, Б, В1, В2, Г, Д')}
             </div>
-
             <div className="space-y-2">
               <Label>Количество рабочих мест</Label>
               {renderField('workplaces', objectData.workplaces, (v) => onInputChange('workplaces', v), '0', 'number')}
             </div>
-
             <div className="space-y-2">
               <Label>Режим работы</Label>
               {renderField('workingHours', objectData.workingHours, (v) => onInputChange('workingHours', v), 'Например: 8:00 - 20:00')}
@@ -321,104 +413,105 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                 Редактировать
               </Button>
             ) : (
-              <Button onClick={() => setIsEditingSystems(false)} className="gap-2">
-                <Icon name="Check" size={16} />
-                Готово
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={saveSystems} disabled={savingSystems} className="gap-2">
+                  <Icon name={savingSystems ? 'Loader2' : 'Save'} size={16} className={savingSystems ? 'animate-spin' : ''} />
+                  {savingSystems ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+                <Button onClick={() => { setIsEditingSystems(false); fetchSystems(); }} variant="outline" className="gap-2">
+                  <Icon name="X" size={16} />
+                  Отмена
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {protectionSystems.map((system) => {
-              const lifeInfo = getServiceLifeInfo(system.commissioningDate);
-              return (
-                <div key={system.id} className="p-4 bg-white dark:bg-slate-950 rounded-lg border space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-sm">{system.name}</h4>
-                    {lifeInfo && (
-                      <Badge className={lifeInfo.badge}>
-                        {lifeInfo.expired ? 'Срок истёк' : 'Действует'}
-                      </Badge>
-                    )}
-                    {!system.commissioningDate && (
-                      <Badge variant="outline" className="text-muted-foreground">Не заполнено</Badge>
-                    )}
-                  </div>
-
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Дата ввода в эксплуатацию</Label>
-                      {isEditingSystems ? (
-                        <Input type="date" value={system.commissioningDate} onChange={(e) => updateSystem(system.id, 'commissioningDate', e.target.value)} className="h-9 text-sm" />
-                      ) : (
-                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">
-                          {system.commissioningDate || '—'}
-                        </p>
-                      )}
+          {loadingSystems ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Icon name="Loader2" size={20} className="animate-spin" />
+              <span className="text-sm">Загрузка систем...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {protectionSystems.map((system) => {
+                const lifeInfo = getServiceLifeInfo(system.commissioning_date);
+                return (
+                  <div key={system.id} className="p-4 bg-white dark:bg-slate-950 rounded-lg border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-sm">{system.system_name}</h4>
                       {lifeInfo && (
-                        <p className={`text-xs ${lifeInfo.color} font-medium`}>{lifeInfo.text}</p>
+                        <Badge className={lifeInfo.badge}>{lifeInfo.expired ? 'Срок истёк' : 'Действует'}</Badge>
+                      )}
+                      {!system.commissioning_date && (
+                        <Badge variant="outline" className="text-muted-foreground">Не заполнено</Badge>
                       )}
                     </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Проект</Label>
-                      {isEditingSystems ? (
-                        <Input value={system.project} onChange={(e) => updateSystem(system.id, 'project', e.target.value)} placeholder="№ проекта / наименование" className="h-9 text-sm" />
-                      ) : (
-                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.project || '—'}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Комплексные испытания</Label>
-                      {isEditingSystems ? (
-                        <Input value={system.complexTests} onChange={(e) => updateSystem(system.id, 'complexTests', e.target.value)} placeholder="Дата / результат" className="h-9 text-sm" />
-                      ) : (
-                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.complexTests || '—'}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Состояние</Label>
-                      {isEditingSystems ? (
-                        <Select value={system.condition} onValueChange={(v) => updateSystem(system.id, 'condition', v)}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder="Выберите" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {conditionOptions.map(opt => (
-                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">
-                          {system.condition ? (
-                            <span className={`flex items-center gap-1.5 ${
-                              system.condition === 'Исправна' ? 'text-green-600' :
-                              system.condition === 'Неисправна' ? 'text-red-600' :
-                              system.condition === 'Требует ремонта' ? 'text-yellow-600' :
-                              ''
-                            }`}>
-                              <span className={`w-2 h-2 rounded-full ${
-                                system.condition === 'Исправна' ? 'bg-green-500' :
-                                system.condition === 'Неисправна' ? 'bg-red-500' :
-                                system.condition === 'Требует ремонта' ? 'bg-yellow-500' :
-                                system.condition === 'На обслуживании' ? 'bg-blue-500' :
-                                'bg-gray-400'
-                              }`} />
-                              {system.condition}
-                            </span>
-                          ) : '—'}
-                        </p>
-                      )}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Дата ввода в эксплуатацию</Label>
+                        {isEditingSystems ? (
+                          <Input type="date" value={system.commissioning_date} onChange={(e) => updateSystem(system.id, 'commissioning_date', e.target.value)} className="h-9 text-sm" />
+                        ) : (
+                          <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.commissioning_date || '—'}</p>
+                        )}
+                        {lifeInfo && <p className={`text-xs ${lifeInfo.color} font-medium`}>{lifeInfo.text}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Проект</Label>
+                        {isEditingSystems ? (
+                          <Input value={system.project} onChange={(e) => updateSystem(system.id, 'project', e.target.value)} placeholder="№ проекта / наименование" className="h-9 text-sm" />
+                        ) : (
+                          <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.project || '—'}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Комплексные испытания</Label>
+                        {isEditingSystems ? (
+                          <Input value={system.complex_tests} onChange={(e) => updateSystem(system.id, 'complex_tests', e.target.value)} placeholder="Дата / результат" className="h-9 text-sm" />
+                        ) : (
+                          <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.complex_tests || '—'}</p>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Состояние</Label>
+                        {isEditingSystems ? (
+                          <Select value={system.condition} onValueChange={(v) => updateSystem(system.id, 'condition', v)}>
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Выберите" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {conditionOptions.map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">
+                            {system.condition ? (
+                              <span className={`flex items-center gap-1.5 ${
+                                system.condition === 'Исправна' ? 'text-green-600' :
+                                system.condition === 'Неисправна' ? 'text-red-600' :
+                                system.condition === 'Требует ремонта' ? 'text-yellow-600' : ''
+                              }`}>
+                                <span className={`w-2 h-2 rounded-full ${
+                                  system.condition === 'Исправна' ? 'bg-green-500' :
+                                  system.condition === 'Неисправна' ? 'bg-red-500' :
+                                  system.condition === 'Требует ремонта' ? 'bg-yellow-500' :
+                                  system.condition === 'На обслуживании' ? 'bg-blue-500' : 'bg-gray-400'
+                                }`} />
+                                {system.condition}
+                              </span>
+                            ) : '—'}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -475,9 +568,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                   className="flex min-h-[180px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               ) : (
-                <p className="min-h-[180px] px-3 py-2 bg-muted/50 rounded-md border text-sm whitespace-pre-wrap">
-                  {objectData.protectionSystems || '—'}
-                </p>
+                <p className="min-h-[180px] px-3 py-2 bg-muted/50 rounded-md border text-sm whitespace-pre-wrap">{objectData.protectionSystems || '—'}</p>
               )}
             </div>
           </CardContent>
@@ -495,15 +586,21 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
               <CardDescription>Перечень помещений объекта с указанием категорий</CardDescription>
             </div>
             <div className="flex gap-2">
-              {!isEditingRooms ? (
+              {isEditingRooms ? (
+                <>
+                  <Button onClick={saveRooms} disabled={savingRooms} className="gap-2">
+                    <Icon name={savingRooms ? 'Loader2' : 'Save'} size={16} className={savingRooms ? 'animate-spin' : ''} />
+                    {savingRooms ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                  <Button onClick={() => { setIsEditingRooms(false); fetchRooms(); }} variant="outline" className="gap-2">
+                    <Icon name="X" size={16} />
+                    Отмена
+                  </Button>
+                </>
+              ) : (
                 <Button onClick={() => setIsEditingRooms(true)} variant="outline" className="gap-2">
                   <Icon name="Edit" size={16} />
                   Редактировать
-                </Button>
-              ) : (
-                <Button onClick={() => setIsEditingRooms(false)} className="gap-2">
-                  <Icon name="Check" size={16} />
-                  Готово
                 </Button>
               )}
               <Button onClick={addRoom} variant="outline" className="gap-2">
@@ -514,7 +611,12 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
           </div>
         </CardHeader>
         <CardContent>
-          {rooms.length === 0 ? (
+          {loadingRooms ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Icon name="Loader2" size={20} className="animate-spin" />
+              <span className="text-sm">Загрузка помещений...</span>
+            </div>
+          ) : rooms.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Icon name="Building" size={48} className="mx-auto mb-3 opacity-30" />
               <p className="text-sm">Помещения не добавлены</p>
@@ -569,46 +671,35 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
                               room.category === 'А' || room.category === 'Б' ? 'border-red-300 text-red-700 bg-red-50' :
                               room.category.startsWith('В') ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
                               'border-green-300 text-green-700 bg-green-50'
-                            }>
-                              {room.category}
-                            </Badge>
+                            }>{room.category}</Badge>
                           ) : '—'
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {isEditingRooms ? (
-                          <button
-                            onClick={() => updateRoom(room.id, 'hasLVZH', !room.hasLVZH)}
-                            className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors ${room.hasLVZH ? 'bg-red-100 border-red-400' : 'bg-white border-gray-300'}`}
-                          >
-                            {room.hasLVZH && <Icon name="Check" size={16} className="text-red-600" />}
+                          <button onClick={() => updateRoom(room.id, 'has_lvzh', !room.has_lvzh)} className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors mx-auto ${room.has_lvzh ? 'bg-red-100 border-red-400' : 'bg-white border-gray-300'}`}>
+                            {room.has_lvzh && <Icon name="Check" size={16} className="text-red-600" />}
                           </button>
                         ) : (
-                          room.hasLVZH ? <Badge className="bg-red-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
+                          room.has_lvzh ? <Badge className="bg-red-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {isEditingRooms ? (
-                          <button
-                            onClick={() => updateRoom(room.id, 'hasAPS', !room.hasAPS)}
-                            className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors ${room.hasAPS ? 'bg-green-100 border-green-400' : 'bg-white border-gray-300'}`}
-                          >
-                            {room.hasAPS && <Icon name="Check" size={16} className="text-green-600" />}
+                          <button onClick={() => updateRoom(room.id, 'has_aps', !room.has_aps)} className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors mx-auto ${room.has_aps ? 'bg-green-100 border-green-400' : 'bg-white border-gray-300'}`}>
+                            {room.has_aps && <Icon name="Check" size={16} className="text-green-600" />}
                           </button>
                         ) : (
-                          room.hasAPS ? <Badge className="bg-green-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
+                          room.has_aps ? <Badge className="bg-green-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {isEditingRooms ? (
-                          <button
-                            onClick={() => updateRoom(room.id, 'hasAUPT', !room.hasAUPT)}
-                            className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors ${room.hasAUPT ? 'bg-blue-100 border-blue-400' : 'bg-white border-gray-300'}`}
-                          >
-                            {room.hasAUPT && <Icon name="Check" size={16} className="text-blue-600" />}
+                          <button onClick={() => updateRoom(room.id, 'has_aupt', !room.has_aupt)} className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-colors mx-auto ${room.has_aupt ? 'bg-blue-100 border-blue-400' : 'bg-white border-gray-300'}`}>
+                            {room.has_aupt && <Icon name="Check" size={16} className="text-blue-600" />}
                           </button>
                         ) : (
-                          room.hasAUPT ? <Badge className="bg-blue-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
+                          room.has_aupt ? <Badge className="bg-blue-500">Да</Badge> : <span className="text-muted-foreground">Нет</span>
                         )}
                       </td>
                       {isEditingRooms && (
