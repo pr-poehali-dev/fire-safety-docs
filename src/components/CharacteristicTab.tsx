@@ -515,65 +515,40 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="Image" size={20} className="text-purple-600" />
-              Фото объекта
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {objectPhoto ? (
-                <div className="relative group">
-                  <img src={objectPhoto} alt="Объект" className="w-full h-48 object-cover rounded-lg border-2 border-purple-200 dark:border-purple-700" />
-                  <Button variant="destructive" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => { setObjectPhoto(null); onInputChange('photo' as keyof ObjectData, ''); }}>
-                    <Icon name="Trash2" size={16} />
-                  </Button>
-                </div>
-              ) : (
-                <div className="w-full h-48 bg-purple-100 dark:bg-purple-900 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-700 flex flex-col items-center justify-center">
-                  <Icon name="ImagePlus" size={48} className="text-purple-400 mb-2" />
-                  <p className="text-sm text-purple-600 dark:text-purple-400">Фото не загружено</p>
-                </div>
-              )}
-              <label htmlFor="photo-upload">
-                <Button variant="outline" className="w-full" asChild>
-                  <span className="flex items-center gap-2 cursor-pointer">
-                    <Icon name="Upload" size={16} />
-                    Загрузить фото
-                  </span>
+      <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Icon name="Image" size={20} className="text-purple-600" />
+            Фото объекта
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {objectPhoto ? (
+              <div className="relative group">
+                <img src={objectPhoto} alt="Объект" className="w-full max-h-[400px] object-contain rounded-lg border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-slate-900" />
+                <Button variant="destructive" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => { setObjectPhoto(null); onInputChange('photo' as keyof ObjectData, ''); }}>
+                  <Icon name="Trash2" size={16} />
                 </Button>
-                <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-              </label>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="FileText" size={20} className="text-purple-600" />
-              Перечень систем (текстовое поле)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {isEditing ? (
-                <textarea
-                  value={objectData.protectionSystems}
-                  onChange={(e) => onInputChange('protectionSystems', e.target.value)}
-                  placeholder="Дополнительные сведения о системах защиты..."
-                  className="flex min-h-[180px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              ) : (
-                <p className="min-h-[180px] px-3 py-2 bg-muted/50 rounded-md border text-sm whitespace-pre-wrap">{objectData.protectionSystems || '—'}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            ) : (
+              <div className="w-full h-48 bg-purple-100 dark:bg-purple-900 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-700 flex flex-col items-center justify-center">
+                <Icon name="ImagePlus" size={48} className="text-purple-400 mb-2" />
+                <p className="text-sm text-purple-600 dark:text-purple-400">Фото не загружено</p>
+              </div>
+            )}
+            <label htmlFor="photo-upload">
+              <Button variant="outline" className="w-full sm:w-auto" asChild>
+                <span className="flex items-center gap-2 cursor-pointer">
+                  <Icon name="Upload" size={16} />
+                  Загрузить фото
+                </span>
+              </Button>
+              <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+            </label>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border-amber-200 dark:border-amber-800">
         <CardHeader>
