@@ -22,6 +22,7 @@ interface FireIncident {
 interface FiresTabProps {
   incidents: FireIncident[];
   onIncidentsChange: (incidents: FireIncident[]) => void;
+  objectId?: number;
 }
 
 export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps) {

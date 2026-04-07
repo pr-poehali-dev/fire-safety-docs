@@ -45,7 +45,7 @@ const checklistTemplates = [
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function ChecklistSection() {
+export default function ChecklistSection({ objectId }: { objectId?: number }) {
   const [activeTab, setActiveTab] = useState('current');
   const [checklistData, setChecklistData] = useState<Record<string, ChecklistItem>>(
     Object.fromEntries(
@@ -59,11 +59,12 @@ export default function ChecklistSection() {
 
   useEffect(() => {
     loadChecklistData();
-  }, []);
+  }, [objectId]);
 
   const loadChecklistData = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=checklist_items`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=checklist_items${objFilter}`);
       const data = await response.json();
       if (data.length > 0) {
         const loadedData: Record<string, ChecklistItem> = {};
@@ -101,6 +102,7 @@ export default function ChecklistSection() {
           item_id: itemId,
           status: status,
           updated_at: new Date().toISOString(),
+          ...(objectId ? { object_id: objectId } : {}),
         }),
       });
     } catch (error) {
@@ -131,6 +133,7 @@ export default function ChecklistSection() {
               item_id: itemId,
               status: itemData.status,
               updated_at: new Date().toISOString(),
+              ...(objectId ? { object_id: objectId } : {}),
             }),
           });
         }

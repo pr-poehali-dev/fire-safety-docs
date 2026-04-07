@@ -55,6 +55,8 @@ interface CharacteristicTabProps {
   objectData: ObjectData;
   onSave: () => void;
   onInputChange: (field: keyof ObjectData, value: string) => void;
+  objectId?: number;
+  readOnly?: boolean;
 }
 
 const SERVICE_LIFE_YEARS = 10;
@@ -82,7 +84,7 @@ function getServiceLifeInfo(dateStr: string) {
 const conditionOptions = ['Исправна', 'Требует ремонта', 'Неисправна', 'На обслуживании', 'Не установлена'];
 const categoryOptions = ['А', 'Б', 'В1', 'В2', 'В3', 'В4', 'Г', 'Д'];
 
-export default function CharacteristicTab({ objectData, onSave, onInputChange }: CharacteristicTabProps) {
+export default function CharacteristicTab({ objectData, onSave, onInputChange, objectId, readOnly }: CharacteristicTabProps) {
   const { toast } = useToast();
   const [objectPhoto, setObjectPhoto] = useState<string | null>(objectData.photo || null);
   const [isEditing, setIsEditing] = useState(false);
@@ -106,7 +108,8 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
   const fetchSystems = useCallback(async () => {
     setLoadingSystems(true);
     try {
-      const res = await fetch(`${API_URL}?table=protection_systems`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const res = await fetch(`${API_URL}?table=protection_systems${objFilter}`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
       setProtectionSystems(data.map((row: Record<string, string>) => ({
@@ -121,12 +124,13 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
     } finally {
       setLoadingSystems(false);
     }
-  }, []);
+  }, [objectId]);
 
   const fetchRooms = useCallback(async () => {
     setLoadingRooms(true);
     try {
-      const res = await fetch(`${API_URL}?table=rooms_categories`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const res = await fetch(`${API_URL}?table=rooms_categories${objFilter}`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
       setRooms(data.map((row: Record<string, unknown>) => ({
@@ -143,7 +147,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
     } finally {
       setLoadingRooms(false);
     }
-  }, []);
+  }, [objectId]);
 
   useEffect(() => {
     fetchSystems();
@@ -202,6 +206,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
             project: sys.project || null,
             complex_tests: sys.complex_tests || null,
             condition: sys.condition || null,
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
       }
@@ -250,7 +255,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
     setSavingRooms(true);
     try {
       for (const room of rooms) {
-        const payload = {
+        const payload: Record<string, unknown> = {
           table: 'rooms_categories',
           name: room.name,
           area: room.area ? parseFloat(room.area) : null,
@@ -259,6 +264,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
           has_aps: room.has_aps,
           has_aupt: room.has_aupt,
         };
+        if (objectId) payload.object_id = objectId;
 
         if (room._isNew) {
           await fetch(API_URL, {
@@ -305,22 +311,24 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
               </CardTitle>
               <CardDescription>Полная информация об объекте и системах безопасности</CardDescription>
             </div>
-            {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} variant="outline" className="gap-2">
-                <Icon name="Edit" size={16} />
-                Редактировать
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button onClick={handleSave} className="gap-2">
-                  <Icon name="Check" size={16} />
-                  Сохранить
+            {!readOnly && (
+              !isEditing ? (
+                <Button onClick={() => setIsEditing(true)} variant="outline" className="gap-2">
+                  <Icon name="Edit" size={16} />
+                  Редактировать
                 </Button>
-                <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2">
-                  <Icon name="X" size={16} />
-                  Отмена
-                </Button>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={handleSave} className="gap-2">
+                    <Icon name="Check" size={16} />
+                    Сохранить
+                  </Button>
+                  <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2">
+                    <Icon name="X" size={16} />
+                    Отмена
+                  </Button>
+                </div>
+              )
             )}
           </div>
         </CardHeader>
@@ -407,22 +415,24 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
               </CardTitle>
               <CardDescription>Установленные на объекте (срок службы — {SERVICE_LIFE_YEARS} лет)</CardDescription>
             </div>
-            {!isEditingSystems ? (
-              <Button onClick={() => setIsEditingSystems(true)} variant="outline" className="gap-2">
-                <Icon name="Edit" size={16} />
-                Редактировать
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button onClick={saveSystems} disabled={savingSystems} className="gap-2">
-                  <Icon name={savingSystems ? 'Loader2' : 'Save'} size={16} className={savingSystems ? 'animate-spin' : ''} />
-                  {savingSystems ? 'Сохранение...' : 'Сохранить'}
+            {!readOnly && (
+              !isEditingSystems ? (
+                <Button onClick={() => setIsEditingSystems(true)} variant="outline" className="gap-2">
+                  <Icon name="Edit" size={16} />
+                  Редактировать
                 </Button>
-                <Button onClick={() => { setIsEditingSystems(false); fetchSystems(); }} variant="outline" className="gap-2">
-                  <Icon name="X" size={16} />
-                  Отмена
-                </Button>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={saveSystems} disabled={savingSystems} className="gap-2">
+                    <Icon name={savingSystems ? 'Loader2' : 'Save'} size={16} className={savingSystems ? 'animate-spin' : ''} />
+                    {savingSystems ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                  <Button onClick={() => { setIsEditingSystems(false); fetchSystems(); }} variant="outline" className="gap-2">
+                    <Icon name="X" size={16} />
+                    Отмена
+                  </Button>
+                </div>
+              )
             )}
           </div>
         </CardHeader>
@@ -560,29 +570,31 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange }:
               </CardTitle>
               <CardDescription>Перечень помещений объекта с указанием категорий</CardDescription>
             </div>
-            <div className="flex gap-2">
-              {isEditingRooms ? (
-                <>
-                  <Button onClick={saveRooms} disabled={savingRooms} className="gap-2">
-                    <Icon name={savingRooms ? 'Loader2' : 'Save'} size={16} className={savingRooms ? 'animate-spin' : ''} />
-                    {savingRooms ? 'Сохранение...' : 'Сохранить'}
+            {!readOnly && (
+              <div className="flex gap-2">
+                {isEditingRooms ? (
+                  <>
+                    <Button onClick={saveRooms} disabled={savingRooms} className="gap-2">
+                      <Icon name={savingRooms ? 'Loader2' : 'Save'} size={16} className={savingRooms ? 'animate-spin' : ''} />
+                      {savingRooms ? 'Сохранение...' : 'Сохранить'}
+                    </Button>
+                    <Button onClick={() => { setIsEditingRooms(false); fetchRooms(); }} variant="outline" className="gap-2">
+                      <Icon name="X" size={16} />
+                      Отмена
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditingRooms(true)} variant="outline" className="gap-2">
+                    <Icon name="Edit" size={16} />
+                    Редактировать
                   </Button>
-                  <Button onClick={() => { setIsEditingRooms(false); fetchRooms(); }} variant="outline" className="gap-2">
-                    <Icon name="X" size={16} />
-                    Отмена
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditingRooms(true)} variant="outline" className="gap-2">
-                  <Icon name="Edit" size={16} />
-                  Редактировать
+                )}
+                <Button onClick={addRoom} variant="outline" className="gap-2">
+                  <Icon name="Plus" size={16} />
+                  Добавить
                 </Button>
-              )}
-              <Button onClick={addRoom} variant="outline" className="gap-2">
-                <Icon name="Plus" size={16} />
-                Добавить
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>

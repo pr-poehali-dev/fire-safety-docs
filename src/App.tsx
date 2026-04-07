@@ -7,9 +7,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Presentation from "./components/Presentation";
-import AppPage from "./pages/App";
 import PresentationSlideshow from "./components/PresentationSlideshow";
 import TechnicalSpec from "./pages/TechnicalSpec";
+import AuthProvider from "./contexts/AuthContext";
+import AppGuard from "./components/AppGuard";
 
 const queryClient = new QueryClient();
 
@@ -19,15 +20,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/presentation" element={<Presentation />} />
-          <Route path="/slideshow" element={<PresentationSlideshow />} />
-          <Route path="/app" element={<AppPage />} />
-          <Route path="/technical-spec" element={<TechnicalSpec />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/presentation" element={<Presentation />} />
+            <Route path="/slideshow" element={<PresentationSlideshow />} />
+            <Route path="/app" element={<AppGuard />} />
+            <Route path="/technical-spec" element={<TechnicalSpec />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

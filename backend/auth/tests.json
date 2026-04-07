@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Get roles",
+      "method": "GET",
+      "path": "/?action=roles",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Get all objects",
+      "method": "GET",
+      "path": "/?action=objects",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Register user",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "register",
+        "email": "test@example.com",
+        "password": "test123456",
+        "full_name": "Тестовый пользователь",
+        "role": "responsible"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {"success": true},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

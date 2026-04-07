@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import { Badge } from '@/components/ui/badge';
 import JournalSection from '@/components/JournalSection';
 import DocumentationSection from '@/components/DocumentationSection';
 import ChecklistSection from '@/components/ChecklistSection';
@@ -26,12 +22,10 @@ import CharacteristicTab from '@/components/CharacteristicTab';
 import InformingTab from '@/components/InformingTab';
 import ProfileTab from '@/components/ProfileTab';
 import FiresTab from '@/components/FiresTab';
-import FiresDashboard from '@/components/FiresDashboard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import ActivityHistory from '@/components/ActivityHistory';
 import { useToast } from '@/hooks/use-toast';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ObjectData {
   name: string;
@@ -53,7 +47,7 @@ interface ObjectData {
   photo?: string | null;
 }
 
-const mainSections = [
+const allSections = [
   { id: 'profile', icon: 'User', title: 'Личный кабинет', color: 'bg-indigo-500' },
   { id: 'characteristic', icon: 'Building2', title: 'Характеристика объекта', color: 'bg-blue-500' },
   { id: 'informing', icon: 'Info', title: 'Информирование', color: 'bg-cyan-500' },
@@ -70,6 +64,17 @@ const mainSections = [
   { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-blue-500' },
   { id: 'faq', icon: 'HelpCircle', title: 'Вопросы и ответы', color: 'bg-purple-500' },
 ];
+
+const managerSections = new Set([
+  'profile',
+  'characteristic',
+  'assessment',
+  'audits',
+  'declaration',
+  'insurance',
+  'fires',
+  'faq',
+]);
 
 const journalSubsections = [
   {
@@ -218,7 +223,30 @@ const drillFields = [
   { key: 'responsible_person', label: 'Ответственное лицо' },
 ];
 
+function convertObjectToLocal(obj: Record<string, unknown>): ObjectData {
+  return {
+    name: (obj.name as string) || '',
+    functionalClass: (obj.functional_class as string) || '',
+    commissioningDate: (obj.commissioning_date as string) || '',
+    address: (obj.address as string) || '',
+    fireResistance: (obj.fire_resistance as string) || '',
+    structuralFireHazard: (obj.structural_fire_hazard as string) || '',
+    area: obj.area != null ? String(obj.area) : '',
+    floorArea: obj.floor_area != null ? String(obj.floor_area) : '',
+    height: obj.height != null ? String(obj.height) : '',
+    floors: obj.floors != null ? String(obj.floors) : '',
+    volume: obj.volume != null ? String(obj.volume) : '',
+    outdoorCategory: (obj.outdoor_category as string) || '',
+    buildingCategory: (obj.building_category as string) || '',
+    workplaces: obj.workplaces != null ? String(obj.workplaces) : '',
+    workingHours: (obj.working_hours as string) || '',
+    protectionSystems: (obj.protection_systems as string) || '',
+    photo: (obj.photo as string) || null,
+  };
+}
+
 const AppPage = () => {
+  const { user, currentObject, selectObject, updateObject, hasRole, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('profile');
   const [activeJournalSubsection, setActiveJournalSubsection] = useState(journalSubsections[0].id);
   const [isLoading, setIsLoading] = useState(false);
@@ -234,72 +262,35 @@ const AppPage = () => {
     setSidebarAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 10);
   }, []);
 
-  const [fireIncidents, setFireIncidents] = useState<any[]>([]);
+  const [fireIncidents, setFireIncidents] = useState<Record<string, unknown>[]>([]);
 
-  const [objectData, setObjectData] = useState<ObjectData>({
-    name: '',
-    functionalClass: '',
-    commissioningDate: '',
-    address: '',
-    fireResistance: '',
-    structuralFireHazard: '',
-    area: '',
-    floorArea: '',
-    height: '',
-    floors: '',
-    volume: '',
-    outdoorCategory: '',
-    buildingCategory: '',
-    workplaces: '',
-    workingHours: '',
-    protectionSystems: '',
-    photo: null,
-  });
+  const [objectData, setObjectData] = useState<ObjectData>(() =>
+    currentObject ? convertObjectToLocal(currentObject as unknown as Record<string, unknown>) : {
+      name: '', functionalClass: '', commissioningDate: '', address: '',
+      fireResistance: '', structuralFireHazard: '', area: '', floorArea: '',
+      height: '', floors: '', volume: '', outdoorCategory: '', buildingCategory: '',
+      workplaces: '', workingHours: '', protectionSystems: '', photo: null,
+    }
+  );
 
   useEffect(() => {
-    const fetchObjectData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${API_URL}?table=object_characteristics`);
-        if (!response.ok) throw new Error('Failed to fetch');
-        const data = await response.json();
-        if (data && data.length > 0) {
-          const latest = data[0];
-          setObjectData({
-            name: latest.name || '',
-            functionalClass: latest.functional_class || '',
-            commissioningDate: latest.commissioning_date || '',
-            address: latest.address || '',
-            fireResistance: latest.fire_resistance || '',
-            structuralFireHazard: latest.structural_fire_hazard || '',
-            area: latest.area ? String(latest.area) : '',
-            floorArea: latest.floor_area ? String(latest.floor_area) : '',
-            height: latest.height ? String(latest.height) : '',
-            floors: latest.floors ? String(latest.floors) : '',
-            volume: latest.volume ? String(latest.volume) : '',
-            outdoorCategory: latest.outdoor_category || '',
-            buildingCategory: latest.building_category || '',
-            workplaces: latest.workplaces ? String(latest.workplaces) : '',
-            workingHours: latest.working_hours || '',
-            protectionSystems: latest.protection_systems || '',
-            photo: latest.photo || null,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching object data:', error);
-      } finally {
-        setTimeout(() => setIsLoading(false), 500);
-      }
-    };
+    if (currentObject) {
+      setObjectData(convertObjectToLocal(currentObject as unknown as Record<string, unknown>));
+    }
+  }, [currentObject]);
 
-    fetchObjectData();
-  }, []);
+  const objectId = currentObject?.id ?? 0;
+
+  const mainSections = hasRole(['admin', 'responsible'])
+    ? allSections
+    : allSections.filter((s) => managerSections.has(s.id));
 
   const handleSaveObject = async () => {
+    if (!currentObject) return;
     setIsLoading(true);
     try {
-      const dbData = {
-        table: 'object_characteristics',
+      const dbData: Record<string, unknown> = {
+        object_id: currentObject.id,
         name: objectData.name,
         functional_class: objectData.functionalClass,
         commissioning_date: objectData.commissioningDate || null,
@@ -319,13 +310,8 @@ const AppPage = () => {
         photo: objectData.photo,
       };
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dbData),
-      });
-
-      if (!response.ok) throw new Error('Failed to save');
+      const ok = await updateObject(dbData);
+      if (!ok) throw new Error('Failed to save');
 
       toast({
         title: 'Успешно сохранено',
@@ -357,20 +343,22 @@ const AppPage = () => {
     setObjectData(prev => ({ ...prev, [field]: value }));
   };
 
+  const isReadOnlyCharacteristic = hasRole(['manager']);
+
   const renderMainSection = () => {
     switch (activeSection) {
       case 'profile':
         return <ProfileTab />;
       case 'characteristic':
-        return <CharacteristicTab objectData={objectData} onSave={handleSaveObject} onInputChange={handleInputChange} />;
+        return <CharacteristicTab objectData={objectData} onSave={handleSaveObject} onInputChange={handleInputChange} objectId={objectId} readOnly={isReadOnlyCharacteristic} />;
       case 'informing':
         return <InformingTab />;
       case 'documentation':
-        return <DocumentationSection />;
+        return <DocumentationSection objectId={objectId} />;
       case 'monitoring':
-        return <MonitoringSection />;
+        return <MonitoringSection objectId={objectId} />;
       case 'fires':
-        return <FiresTab incidents={fireIncidents} onIncidentsChange={setFireIncidents} />;
+        return <FiresTab incidents={fireIncidents} onIncidentsChange={setFireIncidents} objectId={objectId} />;
       case 'journal':
         return (
           <div>
@@ -398,6 +386,7 @@ const AppPage = () => {
                     color="bg-blue-500"
                     fields={subsection.fields}
                     onSave={(data) => console.log('Saved:', data)}
+                    objectId={objectId}
                   />
                 </TabsContent>
               ))}
@@ -405,25 +394,25 @@ const AppPage = () => {
           </div>
         );
       case 'checklist':
-        return <ChecklistSection />;
+        return <ChecklistSection objectId={objectId} />;
       case 'drills':
-        return <DrillsSection fields={drillFields} />;
+        return <DrillsSection fields={drillFields} objectId={objectId} />;
       case 'assessment':
         return <AssessmentDashboard />;
       case 'executive_docs':
-        return <ExecutiveDocsSection />;
+        return <ExecutiveDocsSection objectId={objectId} />;
       case 'calculations':
-        return <CalculationsSection />;
+        return <CalculationsSection objectId={objectId} />;
       case 'audits':
-        return <AuditsSection />;
+        return <AuditsSection objectId={objectId} />;
       case 'declaration':
-        return <DeclarationSection objectData={objectData} />;
+        return <DeclarationSection objectData={objectData} objectId={objectId} />;
       case 'insurance':
-        return <InsuranceSection />;
+        return <InsuranceSection objectId={objectId} />;
       case 'notifications':
-        return <NotificationsSection />;
+        return <NotificationsSection objectId={objectId} />;
       case 'export':
-        return <ExportSection />;
+        return <ExportSection objectId={objectId} />;
       case 'faq':
         return <FAQSection />;
       default:
@@ -436,7 +425,6 @@ const AppPage = () => {
       {isLoading && <LoadingIndicator />}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
         <div className="flex">
-          {/* Боковая навигация */}
           <div ref={sidebarRef} onScroll={handleSidebarScroll} className="w-80 h-screen bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 overflow-y-auto">
             {sidebarScrolled && (
               <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/10 to-transparent z-10 pointer-events-none" />
@@ -452,16 +440,35 @@ const AppPage = () => {
               <h1 className="text-sm font-semibold text-white/90 leading-snug">
                 Система управления<br/>пожарной безопасностью
               </h1>
+              {currentObject && (
+                <p className="text-xs text-white/70 mt-2 truncate">{currentObject.name}</p>
+              )}
             </div>
             
-            <div className="p-4">
+            <div className="p-4 space-y-1">
+              <Button
+                variant="ghost"
+                onClick={() => selectObject(null)}
+                className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <Icon name="ArrowLeft" size={20} />
+                <span>К списку объектов</span>
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => window.location.href = '/'}
-                className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900 mb-4"
+                className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900"
               >
-                <Icon name="ArrowLeft" size={20} />
+                <Icon name="Home" size={20} />
                 <span>На главную</span>
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="w-full justify-start gap-2 text-gray-600 hover:text-red-600"
+              >
+                <Icon name="LogOut" size={20} />
+                <span>Выйти</span>
               </Button>
             </div>
 
@@ -490,7 +497,6 @@ const AppPage = () => {
             )}
           </div>
 
-          {/* Основной контент */}
           <div className="ml-80 flex-1 p-8">
             <Card className="shadow-lg">
               <CardContent className="p-6">{renderMainSection()}</CardContent>

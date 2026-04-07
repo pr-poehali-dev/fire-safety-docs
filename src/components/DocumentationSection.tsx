@@ -22,7 +22,7 @@ interface StoredFile {
   uploadDate: string;
 }
 
-export default function DocumentationSection() {
+export default function DocumentationSection({ objectId }: { objectId?: number }) {
   const [activeTab, setActiveTab] = useState('order');
   const [files, setFiles] = useState<Record<string, StoredFile[]>>({});
 

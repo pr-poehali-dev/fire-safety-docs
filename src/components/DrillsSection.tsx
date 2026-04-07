@@ -18,16 +18,17 @@ interface Drill {
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function DrillsSection() {
+export default function DrillsSection({ objectId }: { objectId?: number; fields?: unknown[] }) {
   const [drills, setDrills] = useState<Drill[]>([]);
 
   useEffect(() => {
     loadDrills();
-  }, []);
+  }, [objectId]);
 
   const loadDrills = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=drills`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=drills${objFilter}`);
       const data = await response.json();
       const loadedDrills = data.map((item: any) => ({
         date: item.drill_date,
@@ -73,6 +74,7 @@ export default function DrillsSection() {
             purpose: newDrill.purpose,
             leader: newDrill.leader,
             participants: newDrill.participants,
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
         

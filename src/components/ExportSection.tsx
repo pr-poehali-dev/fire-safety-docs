@@ -25,7 +25,7 @@ const exportSections: ExportSection[] = [
   { id: 'executive_docs', name: 'Исполнительная документация', table: 'executive_documents', icon: 'FolderOpen' },
 ];
 
-export default function ExportSection() {
+export default function ExportSection({ objectId }: { objectId?: number }) {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
 
@@ -73,7 +73,8 @@ export default function ExportSection() {
         const section = exportSections.find((s) => s.id === sectionId);
         if (!section) continue;
 
-        const response = await fetch(`${API_URL}?table=${section.table}`);
+        const objFilter = objectId ? `&object_id=${objectId}` : '';
+        const response = await fetch(`${API_URL}?table=${section.table}${objFilter}`);
         const data = await response.json();
 
         if (data.length > 0) {

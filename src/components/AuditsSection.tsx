@@ -18,16 +18,17 @@ interface Audit {
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function AuditsSection() {
+export default function AuditsSection({ objectId }: { objectId?: number }) {
   const [audits, setAudits] = useState<Audit[]>([]);
 
   useEffect(() => {
     loadAudits();
-  }, []);
+  }, [objectId]);
 
   const loadAudits = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=audits`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=audits${objFilter}`);
       const data = await response.json();
       const loadedAudits = data.map((item: any) => ({
         date: item.audit_date,
@@ -69,6 +70,7 @@ export default function AuditsSection() {
             completed_count: parseInt(newAudit.completed) || 0,
             deadline: newAudit.deadline || null,
             status: 'in_progress',
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
         

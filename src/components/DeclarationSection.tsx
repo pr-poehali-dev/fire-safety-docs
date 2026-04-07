@@ -23,6 +23,7 @@ interface ObjectData {
 
 interface DeclarationProps {
   objectData: ObjectData;
+  objectId?: number;
 }
 
 interface DeclarationData {
@@ -67,7 +68,7 @@ const columnToField: Record<string, string> = Object.fromEntries(
   Object.entries(fieldToColumn).map(([k, v]) => [v, k])
 );
 
-export default function DeclarationSection({ objectData }: DeclarationProps) {
+export default function DeclarationSection({ objectData, objectId }: DeclarationProps) {
   const [dbId, setDbId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,7 +94,8 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
   const loadFromDb = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}?table=declarations`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const res = await fetch(`${API_URL}?table=declarations${objFilter}`);
       const rows = await res.json();
       if (rows.length > 0) {
         const row = rows[0] as Record<string, string | number>;
@@ -112,7 +114,7 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [objectId]);
 
   useEffect(() => {
     loadFromDb();
@@ -129,6 +131,7 @@ export default function DeclarationSection({ objectData }: DeclarationProps) {
       for (const [field, col] of Object.entries(fieldToColumn)) {
         payload[col] = declarationData[field as keyof DeclarationData];
       }
+      if (objectId) payload.object_id = objectId;
 
       if (dbId) {
         payload.id = dbId;

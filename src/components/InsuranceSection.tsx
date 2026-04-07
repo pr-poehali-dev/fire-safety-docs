@@ -15,16 +15,17 @@ interface Insurance {
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function InsuranceSection() {
+export default function InsuranceSection({ objectId }: { objectId?: number }) {
   const [insurances, setInsurances] = useState<Insurance[]>([]);
 
   useEffect(() => {
     loadInsurances();
-  }, []);
+  }, [objectId]);
 
   const loadInsurances = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=insurance_policies`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=insurance_policies${objFilter}`);
       const data = await response.json();
       const loadedInsurances = data.map((item: any) => ({
         policyNumber: item.policy_number || '',
@@ -60,6 +61,7 @@ export default function InsuranceSection() {
             organization: newInsurance.organization,
             insured_object: newInsurance.insured,
             amount: parseFloat(newInsurance.amount) || null,
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
         

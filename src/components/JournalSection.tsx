@@ -17,6 +17,7 @@ interface JournalSectionProps {
   headerFields?: Array<{ key: string; label: string; type?: string }>;
   onSave: (data: Record<string, string>) => void;
   data?: Record<string, string>[];
+  objectId?: number;
 }
 
 interface JournalEntry {
@@ -33,6 +34,7 @@ export default function JournalSection({
   fields,
   headerFields,
   onSave,
+  objectId,
 }: JournalSectionProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [newEntry, setNewEntry] = useState<Record<string, string>>({});
@@ -46,9 +48,10 @@ export default function JournalSection({
   const loadFromDb = useCallback(async () => {
     setIsLoading(true);
     try {
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
       const [entriesRes, headersRes] = await Promise.all([
-        fetch(`${API_URL}?table=journal_entries`),
-        fetch(`${API_URL}?table=journal_headers`),
+        fetch(`${API_URL}?table=journal_entries${objFilter}`),
+        fetch(`${API_URL}?table=journal_headers${objFilter}`),
       ]);
       const allEntries = await entriesRes.json();
       const allHeaders = await headersRes.json();
@@ -75,7 +78,7 @@ export default function JournalSection({
     } finally {
       setIsLoading(false);
     }
-  }, [sectionId]);
+  }, [sectionId, objectId]);
 
   useEffect(() => {
     loadFromDb();
@@ -87,11 +90,12 @@ export default function JournalSection({
 
   const saveHeaderToDb = useCallback(async (data: Record<string, string>) => {
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         table: 'journal_headers',
         section_id: sectionId,
         header_data: JSON.stringify(data),
       };
+      if (objectId) payload.object_id = objectId;
       if (dbHeaderId) {
         await fetch(API_URL, {
           method: 'PUT',
@@ -111,7 +115,7 @@ export default function JournalSection({
     } catch (error) {
       console.error('Error saving header:', error);
     }
-  }, [sectionId, dbHeaderId]);
+  }, [sectionId, dbHeaderId, objectId]);
 
   const handleHeaderChange = (key: string, value: string) => {
     const updated = { ...headerData, [key]: value };
@@ -125,14 +129,16 @@ export default function JournalSection({
     const hasData = Object.values(newEntry).some(v => v && String(v).trim());
     if (!hasData) return;
     try {
+      const entryPayload: Record<string, unknown> = {
+        table: 'journal_entries',
+        section_id: sectionId,
+        entry_data: JSON.stringify(newEntry),
+      };
+      if (objectId) entryPayload.object_id = objectId;
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: 'journal_entries',
-          section_id: sectionId,
-          entry_data: JSON.stringify(newEntry),
-        }),
+        body: JSON.stringify(entryPayload),
       });
       const result = await res.json();
       setEntries(prev => [...prev, {

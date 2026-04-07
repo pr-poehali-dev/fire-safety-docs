@@ -14,16 +14,17 @@ interface ExecutiveDoc {
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function ExecutiveDocsSection() {
+export default function ExecutiveDocsSection({ objectId }: { objectId?: number }) {
   const [docs, setDocs] = useState<ExecutiveDoc[]>([]);
 
   useEffect(() => {
     loadDocs();
-  }, []);
+  }, [objectId]);
 
   const loadDocs = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=executive_documents`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=executive_documents${objFilter}`);
       const data = await response.json();
       const loadedDocs = data.map((item: any) => ({
         name: item.document_name || '',
@@ -55,6 +56,7 @@ export default function ExecutiveDocsSection() {
             document_name: newDoc.name,
             document_date: newDoc.date,
             file_name: newDoc.file?.name || null,
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
         

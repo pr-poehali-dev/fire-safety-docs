@@ -19,7 +19,7 @@ interface Notification {
   section: string;
 }
 
-export default function NotificationsSection() {
+export default function NotificationsSection({ objectId }: { objectId?: number }) {
   const [email, setEmail] = useState('');
   const [emailSaved, setEmailSaved] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -28,7 +28,7 @@ export default function NotificationsSection() {
   useEffect(() => {
     loadNotifications();
     checkDeadlinesAndRisks();
-  }, []);
+  }, [objectId]);
 
   const loadNotifications = () => {
     const mockNotifications: Notification[] = [
@@ -67,7 +67,8 @@ export default function NotificationsSection() {
 
   const checkDeadlinesAndRisks = async () => {
     try {
-      const auditsResponse = await fetch(`${API_URL}?table=audits`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const auditsResponse = await fetch(`${API_URL}?table=audits${objFilter}`);
       const audits = await auditsResponse.json();
       
       const newNotifications: Notification[] = [];

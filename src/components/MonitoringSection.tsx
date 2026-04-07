@@ -4,7 +4,7 @@ import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const MonitoringSection = () => {
+const MonitoringSection = ({ objectId }: { objectId?: number }) => {
   return (
     <div className="space-y-6">
       <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">

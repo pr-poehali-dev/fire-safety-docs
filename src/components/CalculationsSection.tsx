@@ -18,16 +18,17 @@ interface RoomCalculation {
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
-export default function CalculationsSection() {
+export default function CalculationsSection({ objectId }: { objectId?: number }) {
   const [rooms, setRooms] = useState<RoomCalculation[]>([]);
 
   useEffect(() => {
     loadRooms();
-  }, []);
+  }, [objectId]);
 
   const loadRooms = async () => {
     try {
-      const response = await fetch(`${API_URL}?table=fire_hazard_calculations`);
+      const objFilter = objectId ? `&object_id=${objectId}` : '';
+      const response = await fetch(`${API_URL}?table=fire_hazard_calculations${objFilter}`);
       const data = await response.json();
       const loadedRooms = data.map((item: any) => ({
         name: item.room_name || '',
@@ -69,6 +70,7 @@ export default function CalculationsSection() {
             lvzh_gzh: newRoom.lvzh_gzh,
             specific_load: newRoom.specific_load,
             electrical: newRoom.electrical,
+            ...(objectId ? { object_id: objectId } : {}),
           }),
         });
         
