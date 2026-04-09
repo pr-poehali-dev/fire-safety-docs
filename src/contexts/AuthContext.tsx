@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 
 const AUTH_URL = 'https://functions.poehali.dev/a44dbf08-b20a-4c77-a799-0874d91052ae';
+const INACTIVITY_TIMEOUT = 20 * 60 * 1000;
+const TOKEN_REFRESH_MARGIN = 2 * 60 * 1000;
 
 export type RoleCode = 'admin' | 'responsible' | 'manager';
 
@@ -13,6 +15,8 @@ export interface User {
   role_code: RoleCode;
   role_name: string;
   token: string;
+  refresh_token: string;
+  token_expires: number;
 }
 
 export interface FireObject {
@@ -49,6 +53,7 @@ interface AuthContextType {
   createObject: (data: Record<string, unknown>) => Promise<number | null>;
   updateObject: (data: Record<string, unknown>) => Promise<boolean>;
   hasRole: (roles: RoleCode[]) => boolean;
+  sessionWarning: boolean;
 }
 
 interface RegisterData {
@@ -73,16 +78,32 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [objects, setObjects] = useState<FireObject[]>([]);
   const [currentObject, setCurrentObject] = useState<FireObject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionWarning, setSessionWarning] = useState(false);
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('fire_user');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      setUser(parsed);
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.token_expires && parsed.token_expires * 1000 < Date.now()) {
+          if (parsed.refresh_token) {
+            refreshAccessToken(parsed.refresh_token);
+          } else {
+            localStorage.removeItem('fire_user');
+          }
+        } else {
+          setUser(parsed);
+        }
+      } catch {
+        localStorage.removeItem('fire_user');
+      }
     }
     const savedObj = localStorage.getItem('fire_current_object');
     if (savedObj) {
-      setCurrentObject(JSON.parse(savedObj));
+      try { setCurrentObject(JSON.parse(savedObj)); } catch { /* skip */ }
     }
     setIsLoading(false);
   }, []);
@@ -90,8 +111,73 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       loadObjects();
+      setupTokenRefresh();
+      resetInactivityTimer();
+      const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+      const handler = () => resetInactivityTimer();
+      events.forEach(e => window.addEventListener(e, handler, { passive: true }));
+      return () => {
+        events.forEach(e => window.removeEventListener(e, handler));
+        clearAllTimers();
+      };
     }
-  }, [user]);
+  }, [user?.id]);
+
+  const clearAllTimers = () => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    if (warningTimer.current) clearTimeout(warningTimer.current);
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+  };
+
+  const resetInactivityTimer = () => {
+    setSessionWarning(false);
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    if (warningTimer.current) clearTimeout(warningTimer.current);
+
+    warningTimer.current = setTimeout(() => {
+      setSessionWarning(true);
+    }, INACTIVITY_TIMEOUT - 2 * 60 * 1000);
+
+    inactivityTimer.current = setTimeout(() => {
+      performLogout('Сессия завершена по неактивности (20 мин)');
+    }, INACTIVITY_TIMEOUT);
+  };
+
+  const setupTokenRefresh = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    if (!user?.token_expires) return;
+
+    const msUntilExpiry = (user.token_expires * 1000) - Date.now() - TOKEN_REFRESH_MARGIN;
+    if (msUntilExpiry <= 0) {
+      if (user.refresh_token) refreshAccessToken(user.refresh_token);
+      return;
+    }
+
+    refreshTimer.current = setTimeout(async () => {
+      if (user?.refresh_token) {
+        await refreshAccessToken(user.refresh_token);
+      }
+    }, msUntilExpiry);
+  };
+
+  const refreshAccessToken = async (refreshToken: string) => {
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refresh', refresh_token: refreshToken }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setUser(data.user);
+        localStorage.setItem('fire_user', JSON.stringify(data.user));
+      } else {
+        performLogout('Сессия истекла');
+      }
+    } catch {
+      console.error('Token refresh failed');
+    }
+  };
 
   const login = async (email: string, password: string): Promise<string | null> => {
     try {
@@ -127,13 +213,30 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const performLogout = useCallback((reason?: string) => {
+    if (user) {
+      fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'logout',
+          refresh_token: user.refresh_token,
+          email: user.email,
+          user_id: user.id,
+        }),
+      }).catch(() => {});
+    }
+    clearAllTimers();
     setUser(null);
     setCurrentObject(null);
     setObjects([]);
+    setSessionWarning(false);
     localStorage.removeItem('fire_user');
     localStorage.removeItem('fire_current_object');
-  };
+    if (reason) console.info(`[Auth] ${reason}`);
+  }, [user]);
+
+  const logout = () => performLogout('Пользователь вышел');
 
   const loadObjects = async () => {
     if (!user) return;
@@ -206,7 +309,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, objects, currentObject, isLoading,
+      user, objects, currentObject, isLoading, sessionWarning,
       login, register, logout, selectObject, loadObjects, createObject, updateObject, hasRole
     }}>
       {children}
