@@ -36,6 +36,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaQuestion, setCaptchaQuestion] = useState('');
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
 
   const pwStrength = useMemo(() => {
     const passed = passwordChecks.filter(c => c.test(password));
@@ -63,12 +67,26 @@ export default function LoginPage() {
     let err: string | null;
     if (mode === 'login') {
       try {
+        const loginBody: Record<string, string> = { action: 'login', email, password };
+        if (captchaRequired && captchaAnswer) {
+          loginBody.captcha_answer = captchaAnswer;
+          loginBody.captcha_id = captchaId;
+        }
         const res = await fetch('https://functions.poehali.dev/a44dbf08-b20a-4c77-a799-0874d91052ae', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'login', email, password }),
+          body: JSON.stringify(loginBody),
         });
         const data = await res.json();
+        if (data.captcha_required && data.captcha_question) {
+          setCaptchaRequired(true);
+          setCaptchaQuestion(data.captcha_question);
+          setCaptchaId(data.captcha_id || '');
+          setCaptchaAnswer('');
+          setError('Требуется подтверждение — ответьте на вопрос ниже');
+          setLoading(false);
+          return;
+        }
         if (!res.ok) {
           if (data.attempts_remaining !== undefined) {
             setAttemptsRemaining(data.attempts_remaining);
@@ -76,9 +94,13 @@ export default function LoginPage() {
           if (data.locked_until) {
             setLockedUntil(data.locked_until);
           }
+          if (data.captcha_required) {
+            setCaptchaRequired(true);
+          }
           err = data.error || 'Ошибка входа';
         } else {
           err = null;
+          setCaptchaRequired(false);
           const loginResult = await login(email, password);
           if (loginResult) err = loginResult;
         }
@@ -227,6 +249,24 @@ export default function LoginPage() {
                   </div>
                 )}
               </div>
+
+              {captchaRequired && mode === 'login' && (
+                <div className="space-y-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
+                    <Icon name="ShieldQuestion" size={16} />
+                    Подтвердите, что вы не робот
+                  </div>
+                  {captchaQuestion && (
+                    <p className="text-white text-sm">{captchaQuestion}</p>
+                  )}
+                  <Input
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    placeholder="Введите ответ"
+                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                  />
+                </div>
+              )}
 
               {error && (
                 <div className="flex items-start gap-2 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm">

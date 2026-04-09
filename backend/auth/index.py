@@ -328,6 +328,87 @@ def log_auth_event(cursor, conn, email: str, action: str, success: bool, ip: str
     conn.commit()
 
 
+RATE_LIMIT_LOGIN = 30
+RATE_LIMIT_WINDOW = 60
+CAPTCHA_THRESHOLD = 3
+
+
+def check_rate_limit(cursor, conn, ip: str, endpoint: str, limit: int = RATE_LIMIT_LOGIN) -> tuple:
+    cursor.execute(
+        f"""SELECT request_count, window_start FROM {SCHEMA}.rate_limits
+        WHERE ip_address = %s AND endpoint = %s""", [ip, endpoint]
+    )
+    row = cursor.fetchone()
+    now = datetime.utcnow()
+    if row:
+        ws = row['window_start']
+        if isinstance(ws, str):
+            ws = datetime.fromisoformat(ws)
+        if (now - ws).total_seconds() > RATE_LIMIT_WINDOW:
+            cursor.execute(
+                f"UPDATE {SCHEMA}.rate_limits SET request_count = 1, window_start = %s WHERE ip_address = %s AND endpoint = %s",
+                [now, ip, endpoint]
+            )
+            conn.commit()
+            return True, 1
+        if row['request_count'] >= limit:
+            return False, row['request_count']
+        cursor.execute(
+            f"UPDATE {SCHEMA}.rate_limits SET request_count = request_count + 1 WHERE ip_address = %s AND endpoint = %s",
+            [ip, endpoint]
+        )
+        conn.commit()
+        return True, row['request_count'] + 1
+    else:
+        cursor.execute(
+            f"INSERT INTO {SCHEMA}.rate_limits (ip_address, endpoint, request_count, window_start) VALUES (%s, %s, 1, %s)",
+            [ip, endpoint, now]
+        )
+        conn.commit()
+        return True, 1
+
+
+def generate_csrf_token(user_id: int) -> str:
+    data = f"{user_id}:{int(time.time())}:{secrets.token_hex(8)}"
+    sig = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()[:16]
+    return base64.urlsafe_b64encode(f"{data}:{sig}".encode()).decode()
+
+
+def verify_csrf_token(token: str, max_age: int = 3600) -> bool:
+    try:
+        decoded = base64.urlsafe_b64decode(token).decode()
+        parts = decoded.rsplit(':', 1)
+        if len(parts) != 2:
+            return False
+        data, sig = parts
+        expected = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(sig, expected):
+            return False
+        ts = int(data.split(':')[1])
+        if int(time.time()) - ts > max_age:
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def get_captcha_required(cursor, ip: str) -> bool:
+    cursor.execute(
+        f"""SELECT COUNT(*) as cnt FROM {SCHEMA}.auth_logs
+        WHERE ip_address = %s AND action = 'login' AND success = FALSE
+        AND created_at > CURRENT_TIMESTAMP - INTERVAL '15 minutes'""",
+        [ip]
+    )
+    row = cursor.fetchone()
+    return (row['cnt'] or 0) >= CAPTCHA_THRESHOLD
+
+
+def verify_captcha_answer(answer: str, expected: str) -> bool:
+    if not answer or not expected:
+        return False
+    return answer.strip().lower() == expected.strip().lower()
+
+
 def response(status: int, body: dict) -> dict:
     return {
         'statusCode': status,
@@ -338,7 +419,7 @@ def response(status: int, body: dict) -> dict:
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Аутентификация с JWT, блокировкой учётных записей и журналом событий"""
+    """Аутентификация с JWT, rate-limiting, CSRF, капчей и аудитом"""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -460,6 +541,31 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 if not email or not password:
                     return response(400, {'error': 'Email и пароль обязательны'})
+
+                allowed, req_count = check_rate_limit(cursor, conn, ip, 'login', RATE_LIMIT_LOGIN)
+                if not allowed:
+                    log_auth_event(cursor, conn, email, 'login', False, ip, None, ua,
+                                   f'Rate limit превышен: {req_count}/{RATE_LIMIT_LOGIN} за {RATE_LIMIT_WINDOW}с')
+                    return response(429, {
+                        'error': f'Превышен лимит запросов ({RATE_LIMIT_LOGIN}/мин). Повторите позже.',
+                        'retry_after': RATE_LIMIT_WINDOW
+                    })
+
+                captcha_required = get_captcha_required(cursor, ip)
+                if captcha_required:
+                    captcha_answer = body.get('captcha_answer', '')
+                    captcha_expected = body.get('captcha_id', '')
+                    if not captcha_answer:
+                        import random
+                        a, b = random.randint(2, 15), random.randint(2, 15)
+                        captcha_id = str(a + b)
+                        return response(200, {
+                            'captcha_required': True,
+                            'captcha_question': f'Сколько будет {a} + {b}?',
+                            'captcha_id': captcha_id,
+                        })
+                    if not verify_captcha_answer(captcha_answer, captcha_expected):
+                        return response(400, {'error': 'Неверный ответ на капчу', 'captcha_required': True})
 
                 cursor.execute(
                     f"""SELECT u.id, u.email, u.full_name, u.phone, u.position,
@@ -814,6 +920,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'require_special': PASSWORD_RULES['require_special'],
                     'corporate_domain': CORPORATE_DOMAIN,
                 })
+
+            elif action == 'csrf_token':
+                uid = int(params.get('user_id', '0'))
+                token = generate_csrf_token(uid)
+                return response(200, {'csrf_token': token})
 
             elif action == 'data_protection':
                 cursor.execute(f"SELECT config_key, config_value FROM {SCHEMA}.data_protection_config ORDER BY id")

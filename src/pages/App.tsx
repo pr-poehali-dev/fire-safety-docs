@@ -27,6 +27,7 @@ import ActivityHistory from '@/components/ActivityHistory';
 import AuthLogsSection from '@/components/AuthLogsSection';
 import SecurityEventsSection from '@/components/SecurityEventsSection';
 import DataProtectionSection from '@/components/DataProtectionSection';
+import SecurityReportSection from '@/components/SecurityReportSection';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -66,6 +67,7 @@ const allSections = [
   { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-orange-500' },
   { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-blue-500' },
   { id: 'data_protection', icon: 'FileKey', title: 'Защита данных', color: 'bg-emerald-700' },
+  { id: 'security_report', icon: 'ShieldCheck', title: 'Отчёт безопасности', color: 'bg-teal-700' },
   { id: 'security_events', icon: 'Shield', title: 'Журнал событий ИБ', color: 'bg-indigo-700' },
   { id: 'auth_logs', icon: 'ShieldAlert', title: 'Журнал авторизации', color: 'bg-slate-600' },
   { id: 'faq', icon: 'HelpCircle', title: 'Вопросы и ответы', color: 'bg-purple-500' },
@@ -287,7 +289,7 @@ const AppPage = () => {
 
   const objectId = currentObject?.id ?? 0;
 
-  const adminOnlySections = new Set(['auth_logs', 'security_events', 'data_protection']);
+  const adminOnlySections = new Set(['auth_logs', 'security_events', 'data_protection', 'security_report']);
   const mainSections = (hasRole(['admin', 'responsible'])
     ? allSections
     : allSections.filter((s) => managerSections.has(s.id))
@@ -423,6 +425,8 @@ const AppPage = () => {
         return <ExportSection objectId={objectId} />;
       case 'data_protection':
         return <DataProtectionSection />;
+      case 'security_report':
+        return <SecurityReportSection />;
       case 'security_events':
         return <SecurityEventsSection />;
       case 'auth_logs':

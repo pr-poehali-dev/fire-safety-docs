@@ -1,11 +1,25 @@
 import json
 import os
+import re
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from datetime import datetime
 
 SCHEMA = 't_p36866218_fire_safety_docs'
+
+ALLOWED_TABLES = {
+    'object_characteristics', 'journal_entries', 'journal_headers',
+    'checklist_items', 'checklist_files', 'drills', 'drill_documents',
+    'audits', 'audit_violations', 'declarations', 'insurance_policies',
+    'executive_documents', 'fire_hazard_calculations', 'protection_systems',
+    'rooms_categories', 'documentation_files', 'certificates', 'user_profile',
+    'section_aups', 'section_aupt', 'section_fire_blankets', 'section_fire_dampers',
+    'section_fire_extinguishers', 'section_fire_protection', 'section_hose_rolling',
+    'section_indoor_hydrants', 'section_ladder_tests', 'section_outdoor_hydrants',
+    'section_ppe', 'section_smoke_ventilation', 'section_soue', 'section_valves_pumps',
+    'section_ventilation_cleaning',
+}
 
 TRACKED_TABLES = {
     'journal_entries', 'journal_headers', 'checklist_items', 'drills', 'audits',
@@ -17,6 +31,36 @@ TRACKED_TABLES = {
     'section_ppe', 'section_smoke_ventilation', 'section_soue', 'section_valves_pumps',
     'section_ventilation_cleaning',
 }
+
+FIELD_NAME_RE = re.compile(r'^[a-z_][a-z0-9_]{0,62}$')
+
+SECURITY_HEADERS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Cache-Control': 'no-store',
+}
+
+
+def validate_table(name: str) -> bool:
+    return name in ALLOWED_TABLES
+
+
+def validate_field_name(name: str) -> bool:
+    return bool(FIELD_NAME_RE.match(name))
+
+
+def sanitize_string(val: Any) -> Any:
+    if isinstance(val, str):
+        val = val.replace('\x00', '')
+        if len(val) > 10000:
+            val = val[:10000]
+    return val
+
+
+def sanitize_fields(data: dict) -> dict:
+    return {k: sanitize_string(v) for k, v in data.items() if validate_field_name(k)}
 
 
 def get_client_ip(event: dict) -> str:
@@ -55,14 +99,14 @@ def log_security_event(cursor, conn, data: dict):
 def response(status: int, body) -> dict:
     return {
         'statusCode': status,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'headers': dict(SECURITY_HEADERS),
         'body': json.dumps(body, default=str),
         'isBase64Encoded': False
     }
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Универсальный CRUD с аудитом изменений для подсистемы ИБ"""
+    """Универсальный CRUD с whitelist-валидацией и аудитом изменений"""
     method: str = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -71,7 +115,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token, X-Session-Id',
+                'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token, X-Session-Id, X-CSRF-Token',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -93,8 +137,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'GET':
             params = event.get('queryStringParameters') or {}
             table = params.get('table', 'object_characteristics')
-            object_id = params.get('object_id')
 
+            if not validate_table(table):
+                log_security_event(cursor, conn, {
+                    'user_id': int(user_id) if user_id else None,
+                    'action': 'access_denied_table',
+                    'category': 'access_denied',
+                    'resource': table,
+                    'ip_address': ip,
+                    'details': f'Попытка доступа к запрещённой таблице: {table}',
+                    'severity': 'warning',
+                    'success': False,
+                })
+                return response(403, {'error': 'Доступ к указанному ресурсу запрещён'})
+
+            object_id = params.get('object_id')
             if object_id:
                 cursor.execute(f'SELECT * FROM {SCHEMA}.{table} WHERE object_id = %s ORDER BY id DESC', [object_id])
             else:
@@ -103,11 +160,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return response(200, [dict(row) for row in rows])
 
         elif method == 'POST':
-            body_data = json.loads(event.get('body', '{}'))
-            table = body_data.pop('table', 'object_characteristics')
-            meta_user_id = body_data.pop('_user_id', user_id)
-            meta_user_email = body_data.pop('_user_email', '')
-            meta_user_name = body_data.pop('_user_name', '')
+            body_raw = json.loads(event.get('body', '{}'))
+            table = body_raw.pop('table', 'object_characteristics')
+            meta_user_id = body_raw.pop('_user_id', user_id)
+            meta_user_email = body_raw.pop('_user_email', '')
+            meta_user_name = body_raw.pop('_user_name', '')
+
+            if not validate_table(table):
+                log_security_event(cursor, conn, {
+                    'user_id': int(meta_user_id) if meta_user_id else None,
+                    'action': 'access_denied_table',
+                    'category': 'access_denied',
+                    'resource': table,
+                    'ip_address': ip,
+                    'details': f'Попытка записи в запрещённую таблицу: {table}',
+                    'severity': 'warning',
+                    'success': False,
+                })
+                return response(403, {'error': 'Доступ к указанному ресурсу запрещён'})
+
+            body_data = sanitize_fields(body_raw)
+            if not body_data:
+                return response(400, {'error': 'Нет допустимых полей для записи'})
 
             fields = ', '.join(body_data.keys())
             placeholders = ', '.join(['%s'] * len(body_data))
@@ -141,12 +215,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return response(201, {'success': True, 'id': result['id']})
 
         elif method == 'PUT':
-            body_data = json.loads(event.get('body', '{}'))
-            table = body_data.pop('table', 'object_characteristics')
-            record_id = body_data.pop('id')
-            meta_user_id = body_data.pop('_user_id', user_id)
-            meta_user_email = body_data.pop('_user_email', '')
-            meta_user_name = body_data.pop('_user_name', '')
+            body_raw = json.loads(event.get('body', '{}'))
+            table = body_raw.pop('table', 'object_characteristics')
+            record_id = body_raw.pop('id', None)
+            meta_user_id = body_raw.pop('_user_id', user_id)
+            meta_user_email = body_raw.pop('_user_email', '')
+            meta_user_name = body_raw.pop('_user_name', '')
+
+            if not validate_table(table):
+                return response(403, {'error': 'Доступ к указанному ресурсу запрещён'})
+            if record_id is None:
+                return response(400, {'error': 'Не указан id записи'})
+
+            body_data = sanitize_fields(body_raw)
+            if not body_data:
+                return response(400, {'error': 'Нет допустимых полей для обновления'})
 
             old_value = None
             if table in TRACKED_TABLES:
@@ -189,8 +272,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             table = params.get('table', 'object_characteristics')
             record_id = params.get('id')
 
+            if not validate_table(table):
+                return response(403, {'error': 'Доступ к указанному ресурсу запрещён'})
+            if not record_id:
+                return response(400, {'error': 'Не указан id записи'})
+
             old_value = None
-            if table in TRACKED_TABLES and record_id:
+            if table in TRACKED_TABLES:
                 cursor.execute(f'SELECT * FROM {SCHEMA}.{table} WHERE id = %s', [record_id])
                 old_row = cursor.fetchone()
                 if old_row:
@@ -206,7 +294,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'category': 'data_change',
                     'resource': table,
                     'object_id': old_value.get('object_id') if old_value else None,
-                    'record_id': int(record_id) if record_id else None,
+                    'record_id': int(record_id),
                     'old_value': json.dumps(old_value, default=str, ensure_ascii=False)[:2000] if old_value else None,
                     'ip_address': ip,
                     'session_id': session_id,
