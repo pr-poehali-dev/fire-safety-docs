@@ -25,6 +25,7 @@ import FiresTab from '@/components/FiresTab';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import ActivityHistory from '@/components/ActivityHistory';
 import AuthLogsSection from '@/components/AuthLogsSection';
+import SecurityEventsSection from '@/components/SecurityEventsSection';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -63,6 +64,7 @@ const allSections = [
   { id: 'audits', icon: 'Search', title: 'Проверки (аудиты) объекта', color: 'bg-blue-500' },
   { id: 'declaration', icon: 'FileCheck', title: 'Декларация ПБ', color: 'bg-orange-500' },
   { id: 'insurance', icon: 'Shield', title: 'Страхование объекта', color: 'bg-blue-500' },
+  { id: 'security_events', icon: 'Shield', title: 'Журнал событий ИБ', color: 'bg-indigo-700' },
   { id: 'auth_logs', icon: 'ShieldAlert', title: 'Журнал авторизации', color: 'bg-slate-600' },
   { id: 'faq', icon: 'HelpCircle', title: 'Вопросы и ответы', color: 'bg-purple-500' },
 ];
@@ -283,7 +285,7 @@ const AppPage = () => {
 
   const objectId = currentObject?.id ?? 0;
 
-  const adminOnlySections = new Set(['auth_logs']);
+  const adminOnlySections = new Set(['auth_logs', 'security_events']);
   const mainSections = (hasRole(['admin', 'responsible'])
     ? allSections
     : allSections.filter((s) => managerSections.has(s.id))
@@ -417,6 +419,8 @@ const AppPage = () => {
         return <NotificationsSection objectId={objectId} />;
       case 'export':
         return <ExportSection objectId={objectId} />;
+      case 'security_events':
+        return <SecurityEventsSection />;
       case 'auth_logs':
         return <AuthLogsSection />;
       case 'faq':

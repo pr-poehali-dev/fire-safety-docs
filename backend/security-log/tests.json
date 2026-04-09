@@ -1,0 +1,48 @@
+{
+  "tests": [
+    {
+      "name": "Log security event",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "log",
+        "event": {
+          "action": "test_event",
+          "category": "data_change",
+          "resource": "test_table",
+          "user_id": 1,
+          "user_email": "test@rusal.com",
+          "details": "Test security event",
+          "severity": "info"
+        }
+      },
+      "expectedStatus": 201,
+      "expectedBody": {"success": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Search events",
+      "method": "GET",
+      "path": "/?action=search&limit=5",
+      "expectedStatus": 200,
+      "expectedBody": {"events": "array"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get stats",
+      "method": "GET",
+      "path": "/?action=stats",
+      "expectedStatus": 200,
+      "expectedBody": {"retention_days": 180},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Check cleanup info",
+      "method": "GET",
+      "path": "/?action=cleanup",
+      "expectedStatus": 200,
+      "expectedBody": {"retention_days": 180},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
