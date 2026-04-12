@@ -277,25 +277,43 @@ export default function AssessmentDashboard({
     { task: 'Проверка внутренних ПК', dueDate: '2025-02-10', priority: 'low', daysLeft: 55 },
   ];
 
-  const allMonthlyAlertsData = [
-    { month: 'Июнь', aups: 2, soue: 2, aupt: 1, smoke: 0, total: 5 },
-    { month: 'Июль', aups: 2, soue: 1, aupt: 0, smoke: 1, total: 4 },
-    { month: 'Август', aups: 1, soue: 0, aupt: 0, smoke: 2, total: 3 },
-    { month: 'Сентябрь', aups: 3, soue: 2, aupt: 1, smoke: 1, total: 7 },
-    { month: 'Октябрь', aups: 1, soue: 1, aupt: 0, smoke: 0, total: 2 },
-    { month: 'Ноябрь', aups: 2, soue: 0, aupt: 0, smoke: 1, total: 3 },
-    { month: 'Декабрь', aups: 1, soue: 1, aupt: 0, smoke: 1, total: 3 },
-    { month: 'Январь', aups: 0, soue: 1, aupt: 0, smoke: 0, total: 1 },
-    { month: 'Февраль', aups: 2, soue: 0, aupt: 1, smoke: 2, total: 5 },
-    { month: 'Март', aups: 1, soue: 2, aupt: 0, smoke: 1, total: 4 },
-    { month: 'Апрель', aups: 3, soue: 1, aupt: 0, smoke: 0, total: 4 },
-    { month: 'Май', aups: 1, soue: 0, aupt: 1, smoke: 1, total: 3 },
-  ];
+  const systemLifecycleData = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const systems = [
+      { key: 'aps', name: 'АПС', installYear: 2018, lifespan: 10 },
+      { key: 'soue', name: 'СОУЭ', installYear: 2019, lifespan: 10 },
+      { key: 'aupt', name: 'АУПТ', installYear: 2017, lifespan: 10 },
+      { key: 'vpv', name: 'ВПВ', installYear: 2016, lifespan: 10 },
+      { key: 'npv', name: 'НПВ', installYear: 2020, lifespan: 10 },
+    ];
 
-  const monthlyAlertsData = useMemo(() => {
-    const months = parseInt(periodFilter);
-    return allMonthlyAlertsData.slice(-months);
-  }, [periodFilter]);
+    const years: { year: string; [k: string]: string | number }[] = [];
+    for (let y = currentYear; y < currentYear + 10; y++) {
+      const row: Record<string, string | number> = { year: String(y) };
+      systems.forEach(sys => {
+        const age = y - sys.installYear;
+        const remaining = sys.lifespan - age;
+        if (remaining <= 0) {
+          row[sys.key] = 0;
+        } else {
+          row[sys.key] = Math.round((remaining / sys.lifespan) * 100);
+        }
+      });
+      years.push(row);
+    }
+    return years;
+  }, []);
+
+  const systemEventsTimeline = [
+    { year: '2026', system: 'АПС', event: 'Плановое ТО', type: 'maintenance' as const },
+    { year: '2027', system: 'АУПТ', event: 'Замена (истечение срока)', type: 'replacement' as const },
+    { year: '2026', system: 'ВПВ', event: 'Капитальный ремонт', type: 'repair' as const },
+    { year: '2028', system: 'АПС', event: 'Замена (истечение срока)', type: 'replacement' as const },
+    { year: '2029', system: 'СОУЭ', event: 'Замена (истечение срока)', type: 'replacement' as const },
+    { year: '2027', system: 'НПВ', event: 'Плановое ТО', type: 'maintenance' as const },
+    { year: '2030', system: 'НПВ', event: 'Замена (истечение срока)', type: 'replacement' as const },
+    { year: '2028', system: 'ВПВ', event: 'Плановое ТО', type: 'maintenance' as const },
+  ].sort((a, b) => a.year.localeCompare(b.year));
 
   const totalChecklistItems = 19;
   const completedItems = checklistCount;
@@ -308,46 +326,61 @@ export default function AssessmentDashboard({
     { name: 'Критичные', value: criticalItems, color: '#ef4444' },
   ];
 
-  const weeklyResponseTimeData = [
-    { day: 'Пн', responseTime: 1.5, incidents: 0 },
-    { day: 'Вт', responseTime: 1.2, incidents: 1 },
-    { day: 'Ср', responseTime: 1.8, incidents: 0 },
-    { day: 'Чт', responseTime: 1.1, incidents: 0 },
-    { day: 'Пт', responseTime: 1.3, incidents: 1 },
-    { day: 'Сб', responseTime: 1.0, incidents: 0 },
-    { day: 'Вс', responseTime: 1.2, incidents: 1 },
+  const userActivityData = [
+    { category: 'Журнал эксплуатации', filled: totalJournalEntries, total: 50, deadline: '30.06.2026', onTime: totalJournalEntries >= 30 },
+    { category: 'Чек-листы', filled: checklistCount, total: 19, deadline: '15.04.2026', onTime: checklistCount >= 10 },
+    { category: 'Тренировки', filled: drillsCount, total: 4, deadline: '31.12.2026', onTime: drillsCount >= 2 },
+    { category: 'Исп. документация', filled: sectionCounts['executive_documents'] || 0, total: 15, deadline: '01.09.2026', onTime: (sectionCounts['executive_documents'] || 0) >= 8 },
+    { category: 'Страхование', filled: sectionCounts['insurance_policies'] || 0, total: 3, deadline: '01.06.2026', onTime: (sectionCounts['insurance_policies'] || 0) >= 1 },
+    { category: 'Декларации', filled: sectionCounts['declarations'] || 0, total: 2, deadline: '01.07.2026', onTime: (sectionCounts['declarations'] || 0) >= 1 },
   ];
 
-  const allSystemUptimeData = [
-    { month: 'Июнь', uptime: 99.1 },
-    { month: 'Июль', uptime: 99.2 },
-    { month: 'Август', uptime: 99.8 },
-    { month: 'Сентябрь', uptime: 98.5 },
-    { month: 'Октябрь', uptime: 99.9 },
-    { month: 'Ноябрь', uptime: 99.6 },
-    { month: 'Декабрь', uptime: 99.8 },
-    { month: 'Январь', uptime: 99.7 },
-    { month: 'Февраль', uptime: 98.9 },
-    { month: 'Март', uptime: 99.4 },
-    { month: 'Апрель', uptime: 99.6 },
-    { month: 'Май', uptime: 99.5 },
+  const fireHistoryData = [
+    { year: '2016', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
+    { year: '2017', fires: 1, damage: 350, injured: 0, killed: 0, downtime: 3, fines: 50 },
+    { year: '2018', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
+    { year: '2019', fires: 2, damage: 1200, injured: 1, killed: 0, downtime: 14, fines: 200 },
+    { year: '2020', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
+    { year: '2021', fires: 1, damage: 800, injured: 0, killed: 0, downtime: 7, fines: 100 },
+    { year: '2022', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
+    { year: '2023', fires: 1, damage: 500, injured: 2, killed: 0, downtime: 5, fines: 150 },
+    { year: '2024', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
+    { year: '2025', fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 },
   ];
 
-  const systemUptimeData = useMemo(() => {
-    const months = parseInt(periodFilter);
-    return allSystemUptimeData.slice(-months);
-  }, [periodFilter]);
+  const fireHistoryTotals = useMemo(() => {
+    return fireHistoryData.reduce((acc, y) => ({
+      fires: acc.fires + y.fires,
+      damage: acc.damage + y.damage,
+      injured: acc.injured + y.injured,
+      killed: acc.killed + y.killed,
+      downtime: acc.downtime + y.downtime,
+      fines: acc.fines + y.fines,
+    }), { fires: 0, damage: 0, injured: 0, killed: 0, downtime: 0, fines: 0 });
+  }, []);
 
-  const visibleBars = useMemo(() => {
-    const systems = {
-      all: ['aups', 'soue', 'aupt', 'smoke'],
-      aups: ['aups'],
-      soue: ['soue'],
-      aupt: ['aupt'],
-      smoke: ['smoke'],
-    };
-    return systems[systemFilter as keyof typeof systems] || systems.all;
-  }, [systemFilter]);
+  const auditsData = [
+    { name: 'Плановая проверка ГПН', date: '15.03.2025', status: 'completed' as const, prescriptions: 5, fulfilled: 4, deadline: '15.06.2025' },
+    { name: 'Внеплановая проверка', date: '20.08.2024', status: 'completed' as const, prescriptions: 3, fulfilled: 3, deadline: '20.11.2024' },
+    { name: 'Внутренний аудит ПБ', date: '10.01.2026', status: 'in_progress' as const, prescriptions: 8, fulfilled: 5, deadline: '10.07.2026' },
+    { name: 'Плановая проверка ГПН', date: '01.09.2026', status: 'planned' as const, prescriptions: 0, fulfilled: 0, deadline: '01.12.2026' },
+  ];
+
+  const auditsTotalPrescriptions = auditsData.reduce((s, a) => s + a.prescriptions, 0);
+  const auditsTotalFulfilled = auditsData.reduce((s, a) => s + a.fulfilled, 0);
+  const auditsCompletionPercent = auditsTotalPrescriptions > 0 ? Math.round((auditsTotalFulfilled / auditsTotalPrescriptions) * 100) : 0;
+
+  const maintenanceSchedule = [
+    { system: 'АПС', type: 'ТО (ежеквартальное)', lastDate: '10.01.2026', nextDate: '10.04.2026', status: 'on_time' as const, responsible: 'ООО "Пожтехника"' },
+    { system: 'СОУЭ', type: 'ТО (ежеквартальное)', lastDate: '15.12.2025', nextDate: '15.03.2026', status: 'overdue' as const, responsible: 'ООО "Пожтехника"' },
+    { system: 'АУПТ', type: 'Комплексные испытания', lastDate: '01.06.2025', nextDate: '01.06.2026', status: 'on_time' as const, responsible: 'ООО "Спецмонтаж"' },
+    { system: 'ВПВ', type: 'Испытания на водоотдачу', lastDate: '20.09.2025', nextDate: '20.03.2026', status: 'overdue' as const, responsible: 'ООО "Водозащита"' },
+    { system: 'НПВ', type: 'Перекатка рукавов', lastDate: '01.11.2025', nextDate: '01.05.2026', status: 'on_time' as const, responsible: 'ООО "Водозащита"' },
+    { system: 'Огнетушители', type: 'Перезарядка', lastDate: '05.01.2026', nextDate: '05.01.2027', status: 'on_time' as const, responsible: 'ООО "Пожтехника"' },
+    { system: 'АПС', type: 'Замена извещателей', lastDate: '—', nextDate: '01.01.2028', status: 'planned' as const, responsible: 'ООО "Пожтехника"' },
+    { system: 'АУПТ', type: 'Капитальный ремонт', lastDate: '—', nextDate: '01.06.2027', status: 'planned' as const, responsible: 'ООО "Спецмонтаж"' },
+    { system: 'ВПВ', type: 'Замена трубопроводов', lastDate: '—', nextDate: '01.01.2026', status: 'overdue' as const, responsible: 'ООО "Водозащита"' },
+  ];
 
   const overallCompletion =
     (metrics.reduce((sum, m) => sum + m.value, 0) / metrics.reduce((sum, m) => sum + m.total, 0)) * 100;
@@ -1017,38 +1050,69 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
+        <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="ShieldCheck" size={20} className="text-blue-600" />
+              Состояние систем противопожарной защиты — план на 10 лет
+            </CardTitle>
+            <CardDescription>Остаточный ресурс оборудования (%) и планы замены/ремонта по данным характеристики объекта</CardDescription>
+          </CardHeader>
+          <CardContent ref={chart1Ref}>
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={systemLifecycleData} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="year" className="text-xs" />
+                <YAxis className="text-xs" domain={[0, 100]} label={{ value: '%', position: 'insideLeft', style: { fontSize: '12px' } }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { aps: 'АПС', soue: 'СОУЭ', aupt: 'АУПТ', vpv: 'ВПВ', npv: 'НПВ' };
+                    return [`${value}%`, labels[name] || name];
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(v: string) => {
+                  const labels: Record<string, string> = { aps: 'АПС', soue: 'СОУЭ', aupt: 'АУПТ', vpv: 'ВПВ', npv: 'НПВ' };
+                  return labels[v] || v;
+                }} />
+                <Bar dataKey="aps" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="soue" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="aupt" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="vpv" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="npv" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <Icon name="CalendarClock" size={16} className="text-muted-foreground" />
+                Планируемые мероприятия
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {systemEventsTimeline.map((evt, i) => (
+                  <div key={i} className={`flex items-center gap-2 text-xs p-2 rounded border ${
+                    evt.type === 'replacement' ? 'bg-red-50 border-red-200 dark:bg-red-950/30' :
+                    evt.type === 'repair' ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30' :
+                    'bg-blue-50 border-blue-200 dark:bg-blue-950/30'
+                  }`}>
+                    <Badge variant="outline" className="flex-shrink-0">{evt.year}</Badge>
+                    <Icon name={evt.type === 'replacement' ? 'RefreshCw' : evt.type === 'repair' ? 'Wrench' : 'Settings'} size={14} className={
+                      evt.type === 'replacement' ? 'text-red-500' : evt.type === 'repair' ? 'text-amber-500' : 'text-blue-500'
+                    } />
+                    <span><strong>{evt.system}</strong> — {evt.event}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Icon name="BarChart3" size={20} className="text-orange-500" />
-                Срабатывания систем
-              </CardTitle>
-              <CardDescription>Статистика тревожных событий по системам</CardDescription>
-            </CardHeader>
-            <CardContent ref={chart1Ref}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyAlertsData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }} 
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  {visibleBars.includes('aups') && <Bar dataKey="aups" name="АУПС" fill="#3b82f6" radius={[4, 4, 0, 0]} />}
-                  {visibleBars.includes('soue') && <Bar dataKey="soue" name="СОУЭ" fill="#8b5cf6" radius={[4, 4, 0, 0]} />}
-                  {visibleBars.includes('aupt') && <Bar dataKey="aupt" name="АУПТ" fill="#06b6d4" radius={[4, 4, 0, 0]} />}
-                  {visibleBars.includes('smoke') && <Bar dataKey="smoke" name="Противодымная" fill="#10b981" radius={[4, 4, 0, 0]} />}
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
 
           <Card className="animate-in fade-in slide-in-from-right" style={{ animationDelay: '200ms' }}>
             <CardHeader>
