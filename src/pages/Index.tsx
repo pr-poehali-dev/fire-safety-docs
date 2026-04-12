@@ -32,7 +32,7 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 flex flex-col">
         
         {/* Header */}
-        <header className="w-full bg-white/80 backdrop-blur border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+        <header className="w-full bg-white/80 backdrop-blur border-b border-gray-100 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
               <Icon name="Flame" size={22} className="text-white" />
@@ -50,7 +50,7 @@ const Index = () => {
         </header>
 
         {/* Hero */}
-        <main className="flex-1 flex items-center justify-center px-8 py-16">
+        <main className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8 sm:py-16">
           <div className="max-w-4xl w-full text-center space-y-8">
 
             {/* Логотип / иконка */}
@@ -61,7 +61,7 @@ const Index = () => {
             </div>
 
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
                 Система управления<br />
                 <span className="bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
                   пожарной безопасностью
@@ -72,11 +72,11 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
               <Button
                 onClick={handleEnterSystem}
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-6 text-lg rounded-xl shadow-lg shadow-blue-200 transition-all"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-6 text-base sm:text-lg rounded-xl shadow-lg shadow-blue-200 transition-all"
               >
                 <Icon name="LogIn" size={22} className="mr-2" />
                 Войти в систему
@@ -85,7 +85,7 @@ const Index = () => {
                 onClick={() => navigate('/technical-spec')}
                 size="lg"
                 variant="outline"
-                className="px-8 py-6 text-lg rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all"
+                className="w-full sm:w-auto px-8 py-6 text-base sm:text-lg rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all"
               >
                 <Icon name="FileText" size={22} className="mr-2" />
                 Техническое задание
@@ -94,7 +94,7 @@ const Index = () => {
                 onClick={() => navigate('/presentation')}
                 size="lg"
                 variant="outline"
-                className="px-8 py-6 text-lg rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all"
+                className="w-full sm:w-auto px-8 py-6 text-base sm:text-lg rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all"
               >
                 <Icon name="Presentation" size={22} className="mr-2" />
                 Презентация
@@ -117,7 +117,7 @@ const Index = () => {
         </main>
 
         {/* Footer */}
-        <footer className="w-full border-t border-gray-100 bg-white/60 px-8 py-4 flex items-center justify-between text-xs text-gray-400">
+        <footer className="w-full border-t border-gray-100 bg-white/60 px-4 sm:px-8 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
           <span>© 2025 Система управления пожарной безопасностью</span>
           <div className="flex items-center gap-3">
             <img

@@ -97,7 +97,7 @@ const ChatAssistant = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-20 w-20 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform duration-300 bg-transparent border-0 p-0"
+        className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 h-16 w-16 lg:h-20 lg:w-20 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform duration-300 bg-transparent border-0 p-0"
       >
         <img 
           src="https://cdn.poehali.dev/files/EocDsQ33PQA.jpg" 
@@ -112,7 +112,7 @@ const ChatAssistant = () => {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
+    <Card className="fixed inset-3 lg:inset-auto lg:bottom-6 lg:right-6 lg:w-96 lg:h-[600px] shadow-2xl z-50 flex flex-col">
       <CardHeader className="border-b bg-primary text-primary-foreground flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

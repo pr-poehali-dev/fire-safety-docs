@@ -1,0 +1,18 @@
+{
+  "name": "Система управления пожарной безопасностью",
+  "short_name": "ПБ Управление",
+  "description": "Система управления пожарной безопасностью объектов",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#1e40af",
+  "theme_color": "#1e40af",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/files/ede3ecea-75a0-4815-b03f-9c1e56a46e81.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

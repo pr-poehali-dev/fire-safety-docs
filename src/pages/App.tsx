@@ -114,9 +114,9 @@ const AppPage = () => {
             onLogout={logout}
           />
 
-          <div className="ml-80 flex-1 p-8">
+          <div className="lg:ml-80 flex-1 p-3 pt-16 sm:p-4 sm:pt-16 lg:p-8 lg:pt-8 min-w-0">
             <Card className="shadow-lg">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <AppSectionRenderer
                   activeSection={activeSection}
                   objectData={objectData}

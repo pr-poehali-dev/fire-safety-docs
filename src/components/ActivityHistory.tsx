@@ -56,7 +56,7 @@ export default function ActivityHistory() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
+        className="fixed bottom-4 left-4 lg:bottom-6 lg:left-auto lg:right-6 rounded-full w-12 h-12 lg:w-14 lg:h-14 shadow-lg bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600"
         size="icon"
       >
         <Icon name="History" size={24} />
@@ -65,7 +65,7 @@ export default function ActivityHistory() {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 shadow-2xl z-50">
+    <Card className="fixed inset-3 lg:inset-auto lg:bottom-6 lg:right-6 lg:w-96 shadow-2xl z-50 max-h-[90vh] overflow-hidden flex flex-col">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-orange-500 text-white">
         <div className="flex items-center justify-between">
           <div>
