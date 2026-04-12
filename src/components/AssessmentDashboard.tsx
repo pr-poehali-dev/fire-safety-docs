@@ -3,10 +3,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+
+const SYSTEMS_API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+const HIDDEN_SYSTEM_KEYS = ['fire_water'];
+
+interface RealProtectionSystem {
+  id: number;
+  system_name: string;
+  system_key: string;
+  commissioning_date: string;
+  condition: string;
+  maintenance_contract: string;
+  contract_expiry: string;
+}
 
 interface FireIncident {
   id: string;
@@ -18,7 +31,7 @@ interface FireIncident {
 }
 
 interface JournalData {
-  [key: string]: any[];
+  [key: string]: Record<string, unknown>[];
 }
 
 interface AssessmentDashboardProps {
@@ -38,15 +51,46 @@ export default function AssessmentDashboard({
   const [isExporting, setIsExporting] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('6');
   const [systemFilter, setSystemFilter] = useState('all');
+  const [realSystems, setRealSystems] = useState<RealProtectionSystem[]>([]);
+  const [loadingSystems, setLoadingSystems] = useState(true);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
   const chart3Ref = useRef<HTMLDivElement>(null);
   const chart4Ref = useRef<HTMLDivElement>(null);
 
+  const fetchRealSystems = useCallback(async () => {
+    setLoadingSystems(true);
+    try {
+      const res = await fetch(`${SYSTEMS_API_URL}?table=protection_systems`);
+      if (!res.ok) throw new Error('fetch error');
+      const data = await res.json();
+      const unique = new Map<string, RealProtectionSystem>();
+      (data as RealProtectionSystem[])
+        .filter(r => !HIDDEN_SYSTEM_KEYS.includes(r.system_key))
+        .forEach(r => {
+          if (!unique.has(r.system_key) || (r.condition && !unique.get(r.system_key)!.condition)) {
+            unique.set(r.system_key, {
+              ...r,
+              commissioning_date: r.commissioning_date || '',
+              condition: r.condition || '',
+              maintenance_contract: r.maintenance_contract || '',
+              contract_expiry: r.contract_expiry || '',
+            });
+          }
+        });
+      setRealSystems(Array.from(unique.values()));
+    } catch (e) {
+      console.error('Error loading systems for dashboard:', e);
+    } finally {
+      setLoadingSystems(false);
+    }
+  }, []);
+
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    fetchRealSystems();
+  }, [fetchRealSystems]);
 
   const exportChartAsImage = async (chartRef: React.RefObject<HTMLDivElement>, filename: string) => {
     if (!chartRef.current) return;
@@ -413,7 +457,7 @@ export default function AssessmentDashboard({
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-10 h-10 rounded-lg ${metric.color} flex items-center justify-center shadow-md`}>
-                      <Icon name={metric.icon as any} className="text-white" size={18} />
+                      <Icon name={metric.icon} className="text-white" size={18} />
                     </div>
                     <div className="ml-auto text-right">
                       <Badge variant="outline" className="font-semibold">
@@ -489,7 +533,7 @@ export default function AssessmentDashboard({
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <Icon name={stat.icon as any} className={stat.color} size={20} />
+                    <Icon name={stat.icon} className={stat.color} size={20} />
                     <Badge variant="outline" className="text-xs">{stat.status}</Badge>
                   </div>
                   <p className="text-2xl font-bold mb-1">{stat.value}</p>
@@ -538,58 +582,187 @@ export default function AssessmentDashboard({
           </Card>
         )}
 
-        <Card>
+        <Card className="border-t-4 border-t-purple-500">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="Activity" size={20} className="text-green-500" />
-              Состояние систем противопожарной защиты
-            </CardTitle>
-            <CardDescription>Статус работы и показатели здоровья систем (на основе данных журнала)</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {systemHealth.map((system, index) => (
-              <div 
-                key={index} 
-                className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all duration-300 animate-in slide-in-from-right"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                <div className={`w-10 h-10 rounded-lg ${system.color} flex items-center justify-center shadow-md`}>
-                  <Icon name={system.icon as any} className="text-white" size={18} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold text-sm">{system.system}</h4>
-                    <Badge variant="outline" className={`text-xs ${system.status === 'Работает' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
-                      <div className={`h-1.5 w-1.5 rounded-full ${system.status === 'Работает' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'} mr-1`}></div>
-                      {system.status}
-                    </Badge>
-                    {system.entries !== undefined && (
-                      <Badge variant="outline" className="text-xs">
-                        {system.entries} записей
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground">Работоспособность</span>
-                        <span className="text-xs font-semibold">{system.health}%</span>
-                      </div>
-                      <div className="w-full bg-background rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-1000"
-                          style={{ width: isVisible ? `${system.health}%` : '0%' }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Icon name="Clock" size={12} />
-                      {system.lastCheck}
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Icon name="ShieldCheck" size={20} className="text-purple-600" />
+                  Состояние систем противопожарной защиты
+                </CardTitle>
+                <CardDescription>Реальные данные из раздела «Характеристика объекта»</CardDescription>
               </div>
-            ))}
+              <Button variant="outline" size="sm" onClick={fetchRealSystems} className="gap-1.5">
+                <Icon name="RefreshCw" size={14} />
+                Обновить
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingSystems ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                <Icon name="Loader2" size={20} className="animate-spin" />
+                <span className="text-sm">Загрузка систем...</span>
+              </div>
+            ) : realSystems.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Icon name="Shield" size={40} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Данные о системах не найдены</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  {(() => {
+                    const active = realSystems.filter(s => s.condition !== 'Не требуется');
+                    const ok = active.filter(s => s.condition === 'Исправна').length;
+                    const needRepair = active.filter(s => s.condition === 'Требует ремонта' || s.condition === 'Неисправна').length;
+                    const withContract = active.filter(s => s.maintenance_contract).length;
+                    const expiredContracts = active.filter(s => {
+                      if (!s.contract_expiry) return false;
+                      return new Date(s.contract_expiry) < new Date();
+                    }).length;
+                    return (
+                      <>
+                        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg border border-green-200 text-center">
+                          <p className="text-3xl font-bold text-green-600">{ok}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Исправны</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 rounded-lg border border-red-200 text-center">
+                          <p className="text-3xl font-bold text-red-600">{needRepair}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Требуют ремонта</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 text-center">
+                          <p className="text-3xl font-bold text-blue-600">{withContract}</p>
+                          <p className="text-xs text-muted-foreground mt-1">С договором ТО</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 rounded-lg border border-amber-200 text-center">
+                          <p className="text-3xl font-bold text-amber-600">{expiredContracts}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Договор истёк</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="space-y-3">
+                  {realSystems.map((sys, index) => {
+                    const isNA = sys.condition === 'Не требуется';
+                    const conditionColor = sys.condition === 'Исправна' ? 'bg-green-500' :
+                      sys.condition === 'Неисправна' ? 'bg-red-500' :
+                      sys.condition === 'Требует ремонта' ? 'bg-yellow-500' :
+                      sys.condition === 'На обслуживании' ? 'bg-blue-500' :
+                      sys.condition === 'Не требуется' ? 'bg-slate-400' :
+                      sys.condition === 'Не установлена' ? 'bg-gray-400' : 'bg-gray-300';
+
+                    const hasContractExpiry = sys.contract_expiry && !isNA;
+                    const contractExpired = hasContractExpiry && new Date(sys.contract_expiry) < new Date();
+                    const contractSoon = hasContractExpiry && !contractExpired && (new Date(sys.contract_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 30;
+
+                    let lifeExpired = false;
+                    let lifeText = '';
+                    if (sys.commissioning_date && !isNA) {
+                      const end = new Date(sys.commissioning_date);
+                      end.setFullYear(end.getFullYear() + 10);
+                      const daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                      if (daysLeft < 0) {
+                        lifeExpired = true;
+                        lifeText = 'Срок истёк';
+                      } else if (daysLeft <= 365) {
+                        lifeText = `${Math.floor(daysLeft / 30)} мес.`;
+                      } else {
+                        lifeText = `${Math.floor(daysLeft / 365)} г.`;
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={sys.id}
+                        className={`flex items-center gap-4 p-4 rounded-lg border hover:shadow-sm transition-all duration-300 animate-in slide-in-from-right ${isNA ? 'bg-muted/20 opacity-50' : 'bg-white dark:bg-slate-950'}`}
+                        style={{ animationDelay: `${index * 80}ms` }}
+                      >
+                        <div className={`w-10 h-10 rounded-lg ${conditionColor} flex items-center justify-center shadow-md flex-shrink-0`}>
+                          <Icon name="Shield" className="text-white" size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <h4 className="font-semibold text-sm">{sys.system_name}</h4>
+                            <Badge variant="outline" className={`text-xs ${
+                              sys.condition === 'Исправна' ? 'bg-green-50 text-green-700 border-green-200' :
+                              sys.condition === 'Неисправна' ? 'bg-red-50 text-red-700 border-red-200' :
+                              sys.condition === 'Требует ремонта' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                              sys.condition === 'Не требуется' ? 'bg-slate-50 text-slate-500 border-slate-200' :
+                              'bg-gray-50 text-gray-700 border-gray-200'
+                            }`}>
+                              <div className={`h-1.5 w-1.5 rounded-full ${conditionColor} mr-1`}></div>
+                              {sys.condition || 'Не указано'}
+                            </Badge>
+                          </div>
+                          {!isNA && (
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                              {sys.commissioning_date && (
+                                <span className={`flex items-center gap-1 ${lifeExpired ? 'text-red-600 font-medium' : ''}`}>
+                                  <Icon name="Calendar" size={12} />
+                                  Ввод: {sys.commissioning_date}
+                                  {lifeText && ` (${lifeText})`}
+                                </span>
+                              )}
+                              {sys.maintenance_contract && (
+                                <span className={`flex items-center gap-1 ${contractExpired ? 'text-red-600 font-medium' : contractSoon ? 'text-yellow-600 font-medium' : 'text-green-600'}`}>
+                                  <Icon name="FileCheck" size={12} />
+                                  {sys.maintenance_contract}
+                                  {sys.contract_expiry && ` (до ${sys.contract_expiry})`}
+                                  {contractExpired && ' — истёк!'}
+                                  {contractSoon && ' — скоро!'}
+                                </span>
+                              )}
+                              {!sys.maintenance_contract && (
+                                <span className="flex items-center gap-1 text-orange-500">
+                                  <Icon name="AlertCircle" size={12} />
+                                  Нет договора ТО
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(() => {
+                  const active = realSystems.filter(s => s.condition !== 'Не требуется');
+                  const issues: string[] = [];
+                  active.forEach(s => {
+                    if (s.condition === 'Неисправна') issues.push(`${s.system_name} — неисправна`);
+                    if (s.condition === 'Требует ремонта') issues.push(`${s.system_name} — требует ремонта`);
+                    if (!s.maintenance_contract) issues.push(`${s.system_name} — нет договора на обслуживание`);
+                    if (s.contract_expiry && new Date(s.contract_expiry) < new Date()) issues.push(`${s.system_name} — договор ТО истёк`);
+                    if (s.commissioning_date) {
+                      const end = new Date(s.commissioning_date);
+                      end.setFullYear(end.getFullYear() + 10);
+                      if (end < new Date()) issues.push(`${s.system_name} — срок эксплуатации истёк`);
+                    }
+                  });
+                  if (issues.length === 0) return null;
+                  return (
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon name="AlertTriangle" size={16} className="text-red-600" />
+                        <span className="text-sm font-semibold text-red-700 dark:text-red-400">Выявленные проблемы ({issues.length})</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {issues.map((issue, i) => (
+                          <li key={i} className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-red-500 flex-shrink-0" />
+                            {issue}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </CardContent>
         </Card>
 

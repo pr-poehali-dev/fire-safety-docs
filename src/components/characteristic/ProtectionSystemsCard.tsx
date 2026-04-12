@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const SERVICE_LIFE_YEARS = 10;
-const conditionOptions = ['Исправна', 'Требует ремонта', 'Неисправна', 'На обслуживании', 'Не установлена'];
+const conditionOptions = ['Исправна', 'Требует ремонта', 'Неисправна', 'На обслуживании', 'Не установлена', 'Не требуется'];
+const HIDDEN_SYSTEM_KEYS = ['fire_water'];
 
 interface ProtectionSystem {
   id: number;
@@ -20,6 +21,8 @@ interface ProtectionSystem {
   project: string;
   complex_tests: string;
   condition: string;
+  maintenance_contract: string;
+  contract_expiry: string;
 }
 
 function getServiceLifeInfo(dateStr: string) {
@@ -42,6 +45,22 @@ function getServiceLifeInfo(dateStr: string) {
   return { expired: false, text: `Осталось ${years} г. ${months} мес.`, color: 'text-green-600', badge: 'bg-green-500' };
 }
 
+function getContractStatus(expiryStr: string) {
+  if (!expiryStr) return null;
+  const expiry = new Date(expiryStr);
+  const now = new Date();
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { expired: true, text: 'Истёк', color: 'text-red-600', badgeColor: 'bg-red-100 text-red-700 border-red-300' };
+  }
+  if (diffDays <= 30) {
+    return { expired: false, text: `Истекает через ${diffDays} дн.`, color: 'text-yellow-600', badgeColor: 'bg-yellow-100 text-yellow-700 border-yellow-300' };
+  }
+  return { expired: false, text: 'Действует', color: 'text-green-600', badgeColor: 'bg-green-100 text-green-700 border-green-300' };
+}
+
 interface ProtectionSystemsCardProps {
   objectId?: number;
   readOnly?: boolean;
@@ -61,13 +80,19 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
       const res = await fetch(`${API_URL}?table=protection_systems${objFilter}`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
-      setProtectionSystems(data.map((row: Record<string, string>) => ({
-        ...row,
-        commissioning_date: row.commissioning_date || '',
-        project: row.project || '',
-        complex_tests: row.complex_tests || '',
-        condition: row.condition || '',
-      })));
+      setProtectionSystems(
+        data
+          .filter((row: Record<string, string>) => !HIDDEN_SYSTEM_KEYS.includes(row.system_key))
+          .map((row: Record<string, string>) => ({
+            ...row,
+            commissioning_date: row.commissioning_date || '',
+            project: row.project || '',
+            complex_tests: row.complex_tests || '',
+            condition: row.condition || '',
+            maintenance_contract: row.maintenance_contract || '',
+            contract_expiry: row.contract_expiry || '',
+          }))
+      );
     } catch (e) {
       console.error('Error loading protection systems:', e);
     } finally {
@@ -97,6 +122,8 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
             project: sys.project || null,
             complex_tests: sys.complex_tests || null,
             condition: sys.condition || null,
+            maintenance_contract: sys.maintenance_contract || null,
+            contract_expiry: sys.contract_expiry || null,
             ...(objectId ? { object_id: objectId } : {}),
           }),
         });
@@ -110,6 +137,8 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
       setSavingSystems(false);
     }
   };
+
+  const isNotRequired = (condition: string) => condition === 'Не требуется';
 
   return (
     <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
@@ -153,18 +182,37 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
           <div className="space-y-4">
             {protectionSystems.map((system) => {
               const lifeInfo = getServiceLifeInfo(system.commissioning_date);
+              const contractStatus = getContractStatus(system.contract_expiry);
+              const dimmed = isNotRequired(system.condition);
               return (
-                <div key={system.id} className="p-4 bg-white dark:bg-slate-950 rounded-lg border space-y-3">
+                <div key={system.id} className={`p-4 bg-white dark:bg-slate-950 rounded-lg border space-y-3 ${dimmed ? 'opacity-60' : ''}`}>
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm">{system.system_name}</h4>
-                    {lifeInfo && (
-                      <Badge className={lifeInfo.badge}>{lifeInfo.expired ? 'Срок истёк' : 'Действует'}</Badge>
-                    )}
-                    {!system.commissioning_date && (
-                      <Badge variant="outline" className="text-muted-foreground">Не заполнено</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {system.condition === 'Не требуется' && (
+                        <Badge variant="outline" className="text-slate-500 border-slate-300">Не требуется</Badge>
+                      )}
+                      {!dimmed && lifeInfo && (
+                        <Badge className={lifeInfo.badge}>{lifeInfo.expired ? 'Срок истёк' : 'Действует'}</Badge>
+                      )}
+                      {!dimmed && !system.commissioning_date && system.condition !== 'Не требуется' && (
+                        <Badge variant="outline" className="text-muted-foreground">Не заполнено</Badge>
+                      )}
+                      {!dimmed && contractStatus && (
+                        <Badge variant="outline" className={contractStatus.badgeColor}>
+                          <Icon name="FileCheck" size={12} className="mr-1" />
+                          Договор: {contractStatus.text}
+                        </Badge>
+                      )}
+                      {!dimmed && system.maintenance_contract && !system.contract_expiry && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                          <Icon name="FileCheck" size={12} className="mr-1" />
+                          Договор есть
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-3 ${dimmed && !isEditingSystems ? 'hidden' : ''}`}>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Дата ввода в эксплуатацию</Label>
                       {isEditingSystems ? (
@@ -209,15 +257,40 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
                             <span className={`flex items-center gap-1.5 ${
                               system.condition === 'Исправна' ? 'text-green-600' :
                               system.condition === 'Неисправна' ? 'text-red-600' :
-                              system.condition === 'Требует ремонта' ? 'text-yellow-600' : ''
+                              system.condition === 'Требует ремонта' ? 'text-yellow-600' :
+                              system.condition === 'Не требуется' ? 'text-slate-400' : ''
                             }`}>
                               <span className={`w-2 h-2 rounded-full ${
                                 system.condition === 'Исправна' ? 'bg-green-500' :
                                 system.condition === 'Неисправна' ? 'bg-red-500' :
                                 system.condition === 'Требует ремонта' ? 'bg-yellow-500' :
-                                system.condition === 'На обслуживании' ? 'bg-blue-500' : 'bg-gray-400'
+                                system.condition === 'На обслуживании' ? 'bg-blue-500' :
+                                system.condition === 'Не требуется' ? 'bg-slate-400' : 'bg-gray-400'
                               }`} />
                               {system.condition}
+                            </span>
+                          ) : '—'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Договор на обслуживание</Label>
+                      {isEditingSystems ? (
+                        <Input value={system.maintenance_contract} onChange={(e) => updateSystem(system.id, 'maintenance_contract', e.target.value)} placeholder="№ договора / организация" className="h-9 text-sm" />
+                      ) : (
+                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">{system.maintenance_contract || '—'}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Срок действия договора</Label>
+                      {isEditingSystems ? (
+                        <Input type="date" value={system.contract_expiry} onChange={(e) => updateSystem(system.id, 'contract_expiry', e.target.value)} className="h-9 text-sm" />
+                      ) : (
+                        <p className="h-9 px-2 flex items-center bg-muted/50 rounded border text-sm">
+                          {system.contract_expiry ? (
+                            <span className={contractStatus ? contractStatus.color : ''}>
+                              {system.contract_expiry}
+                              {contractStatus && ` (${contractStatus.text})`}
                             </span>
                           ) : '—'}
                         </p>
