@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import Presentation from "./components/Presentation";
 import PresentationSlideshow from "./components/PresentationSlideshow";
 import TechnicalSpec from "./pages/TechnicalSpec";
+import AcceptanceChecklist from "./pages/AcceptanceChecklist";
 import AuthProvider from "./contexts/AuthContext";
 import AppGuard from "./components/AppGuard";
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/slideshow" element={<PresentationSlideshow />} />
             <Route path="/app" element={<AppGuard />} />
             <Route path="/technical-spec" element={<TechnicalSpec />} />
+            <Route path="/acceptance-checklist" element={<AcceptanceChecklist />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
