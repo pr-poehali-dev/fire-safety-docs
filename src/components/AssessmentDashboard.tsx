@@ -30,22 +30,14 @@ interface FireIncident {
   damage: string;
 }
 
-interface JournalData {
-  [key: string]: Record<string, unknown>[];
-}
-
 interface AssessmentDashboardProps {
+  objectId?: number;
   fireIncidents?: FireIncident[];
-  journalData?: JournalData;
-  checklistCount?: number;
-  drillsCount?: number;
 }
 
 export default function AssessmentDashboard({ 
+  objectId = 0,
   fireIncidents = [], 
-  journalData = {},
-  checklistCount = 0,
-  drillsCount = 0
 }: AssessmentDashboardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -53,6 +45,7 @@ export default function AssessmentDashboard({
   const [systemFilter, setSystemFilter] = useState('all');
   const [realSystems, setRealSystems] = useState<RealProtectionSystem[]>([]);
   const [loadingSystems, setLoadingSystems] = useState(true);
+  const [sectionCounts, setSectionCounts] = useState<Record<string, number>>({});
   const dashboardRef = useRef<HTMLDivElement>(null);
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
@@ -87,10 +80,35 @@ export default function AssessmentDashboard({
     }
   }, []);
 
+  const fetchSectionCounts = useCallback(async () => {
+    const tables = [
+      'section_aups', 'section_soue', 'section_smoke_ventilation', 'section_aupt',
+      'section_fire_extinguishers', 'section_fire_blankets', 'section_fire_protection',
+      'section_fire_dampers', 'section_indoor_hydrants',
+      'checklist_items', 'drills', 'executive_documents', 'insurance_policies',
+      'audits', 'declarations',
+    ];
+    const objFilter = objectId ? `&object_id=${objectId}` : '';
+    const results = await Promise.all(
+      tables.map(async (table) => {
+        try {
+          const res = await fetch(`${SYSTEMS_API_URL}?table=${table}${objFilter}`);
+          if (!res.ok) return { table, count: 0 };
+          const data = await res.json();
+          return { table, count: Array.isArray(data) ? data.length : 0 };
+        } catch { return { table, count: 0 }; }
+      })
+    );
+    const counts: Record<string, number> = {};
+    results.forEach(r => { counts[r.table] = r.count; });
+    setSectionCounts(counts);
+  }, [objectId]);
+
   useEffect(() => {
     setIsVisible(true);
     fetchRealSystems();
-  }, [fetchRealSystems]);
+    fetchSectionCounts();
+  }, [fetchRealSystems, fetchSectionCounts]);
 
   const exportChartAsImage = async (chartRef: React.RefObject<HTMLDivElement>, filename: string) => {
     if (!chartRef.current) return;
@@ -196,45 +214,37 @@ export default function AssessmentDashboard({
     }
   };
 
-  const totalJournalEntries = Object.values(journalData).reduce((sum, entries) => sum + entries.length, 0);
-  const totalJournalSections = 15;
-  const journalPercentage = Math.round((totalJournalEntries / totalJournalSections) * 100);
+  const journalTables = ['section_aups', 'section_soue', 'section_smoke_ventilation', 'section_aupt', 'section_fire_extinguishers', 'section_fire_blankets', 'section_fire_protection', 'section_fire_dampers', 'section_indoor_hydrants'];
+  const totalJournalEntries = journalTables.reduce((sum, t) => sum + (sectionCounts[t] || 0), 0);
+  const filledJournalSections = journalTables.filter(t => (sectionCounts[t] || 0) > 0).length;
+  const journalPercentage = Math.round((filledJournalSections / journalTables.length) * 100);
+
+  const checklistCount = sectionCounts['checklist_items'] || 0;
+  const drillsCount = sectionCounts['drills'] || 0;
+  const execDocsCount = sectionCounts['executive_documents'] || 0;
+  const auditsCount = sectionCounts['audits'] || 0;
+  const activeSystemsCount = realSystems.filter(s => s.condition !== 'Не требуется').length;
+  const okSystemsCount = realSystems.filter(s => s.condition === 'Исправна').length;
+  const systemsPercent = activeSystemsCount > 0 ? Math.round((okSystemsCount / activeSystemsCount) * 100) : 0;
+
+  const getStatus = (val: number, good: number, warn: number) => {
+    if (val >= good) return 'excellent';
+    if (val >= warn) return 'good';
+    if (val > 0) return 'warning';
+    return 'critical';
+  };
 
   const metrics = [
-    { label: 'Документация', value: 75, total: 100, icon: 'FileText', color: 'bg-orange-500', trend: '+5', status: 'good' },
-    { 
-      label: 'Журнал эксплуатации', 
-      value: totalJournalEntries, 
-      total: totalJournalSections, 
-      icon: 'Clipboard', 
-      color: 'bg-blue-500', 
-      trend: '0', 
-      status: totalJournalEntries >= 10 ? 'good' : totalJournalEntries >= 5 ? 'warning' : 'critical' 
-    },
-    { 
-      label: 'Чек-листы', 
-      value: checklistCount, 
-      total: 19, 
-      icon: 'CheckSquare', 
-      color: 'bg-green-500', 
-      trend: '0', 
-      status: checklistCount >= 19 ? 'excellent' : checklistCount >= 10 ? 'good' : 'warning' 
-    },
-    { 
-      label: 'Тренировки', 
-      value: drillsCount, 
-      total: 4, 
-      icon: 'Users', 
-      color: 'bg-purple-500', 
-      trend: '0', 
-      status: drillsCount >= 4 ? 'excellent' : drillsCount >= 2 ? 'warning' : 'critical' 
-    },
-    { label: 'Исполнительная документация', value: 8, total: 15, icon: 'FolderOpen', color: 'bg-yellow-500', trend: '+3', status: 'warning' },
-    { label: 'Проверки', value: 1, total: 3, icon: 'Search', color: 'bg-red-500', trend: '+1', status: 'critical' },
+    { label: 'Журнал эксплуатации', value: filledJournalSections, total: journalTables.length, icon: 'Clipboard', color: 'bg-blue-500', trend: `${totalJournalEntries} зап.`, status: getStatus(journalPercentage, 80, 50) },
+    { label: 'Чек-листы', value: checklistCount, total: 19, icon: 'CheckSquare', color: 'bg-green-500', trend: '0', status: getStatus(checklistCount, 19, 10) },
+    { label: 'Тренировки', value: drillsCount, total: 4, icon: 'Users', color: 'bg-purple-500', trend: '0', status: getStatus(drillsCount, 4, 2) },
+    { label: 'Исполнительная документация', value: execDocsCount, total: 15, icon: 'FolderOpen', color: 'bg-yellow-500', trend: '0', status: getStatus(execDocsCount, 10, 5) },
+    { label: 'Проверки и аудиты', value: auditsCount, total: 3, icon: 'Search', color: 'bg-red-500', trend: '0', status: getStatus(auditsCount, 3, 1) },
+    { label: 'Системы ПЗ исправны', value: okSystemsCount, total: activeSystemsCount || 1, icon: 'Shield', color: 'bg-indigo-500', trend: `${systemsPercent}%`, status: getStatus(systemsPercent, 80, 50) },
   ];
 
-  const aupsEntries = (journalData['aups'] || []).length;
-  const soueEntries = (journalData['aups'] || []).length;
+  const aupsEntries = sectionCounts['section_aups'] || 0;
+  const soueEntries = sectionCounts['section_soue'] || 0;
   const totalDevices = aupsEntries + soueEntries;
 
   const monitoringStats = [
@@ -245,7 +255,7 @@ export default function AssessmentDashboard({
   ];
 
   const getSystemHealth = (systemKey: string, icon: string) => {
-    const entries = (journalData[systemKey] || []).length;
+    const entries = sectionCounts[`section_${systemKey}`] || sectionCounts[systemKey] || 0;
     const health = entries > 0 ? Math.min(100, 80 + entries * 2) : 75;
     const status = entries > 0 ? 'Работает' : 'Нет данных';
     const color = entries > 3 ? 'bg-green-500' : entries > 1 ? 'bg-yellow-500' : 'bg-gray-500';

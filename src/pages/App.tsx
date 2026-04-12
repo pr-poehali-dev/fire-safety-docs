@@ -416,7 +416,7 @@ const AppPage = () => {
       case 'drills':
         return <DrillsSection fields={drillFields} objectId={objectId} />;
       case 'assessment':
-        return <AssessmentDashboard />;
+        return <AssessmentDashboard objectId={objectId} fireIncidents={fireIncidents} />;
       case 'executive_docs':
         return <ExecutiveDocsSection objectId={objectId} />;
       case 'calculations':

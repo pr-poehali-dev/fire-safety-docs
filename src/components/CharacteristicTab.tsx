@@ -42,7 +42,7 @@ export default function CharacteristicTab({ objectData, onSave, onInputChange, o
       />
       <ProtectionSystemsCard objectId={objectId} readOnly={readOnly} />
       <RoomsCategoriesCard objectId={objectId} readOnly={readOnly} />
-      <ObjectSummaryCards />
+      <ObjectSummaryCards objectId={objectId} />
     </div>
   );
 }

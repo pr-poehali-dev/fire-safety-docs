@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const SERVICE_LIFE_YEARS = 10;
@@ -140,6 +141,80 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
 
   const isNotRequired = (condition: string) => condition === 'Не требуется';
 
+  const exportSystemsPDF = () => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const pw = 277;
+    let y = 15;
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ZHURNAL UCHETA SISTEM PROTIVOPOZHARNOJ ZASHCHITY', 10, y);
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data formirovaniya: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
+    y += 4;
+    doc.text(`Srok sluzhby sistem: ${SERVICE_LIFE_YEARS} let`, 10, y);
+    y += 7;
+
+    const cols = ['Sistema', 'Sostoyanie', 'Data vvoda', 'Srok sluzhby', 'Proekt', 'Kompl. ispytaniya', 'Dogovor TO', 'Srok dogovora'];
+    const ws = [55, 28, 24, 28, 35, 35, 40, 32];
+
+    const addRow = (cells: string[], bold = false) => {
+      if (y > 185) { doc.addPage(); y = 15; }
+      doc.setFontSize(7);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      let x = 10;
+      let maxH = 5;
+      cells.forEach((c, i) => {
+        const ls = doc.splitTextToSize(c, ws[i] - 2);
+        maxH = Math.max(maxH, ls.length * 3 + 1);
+      });
+      cells.forEach((c, i) => {
+        const ls = doc.splitTextToSize(c, ws[i] - 2);
+        ls.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3));
+        doc.rect(x, y - 3, ws[i], maxH);
+        x += ws[i];
+      });
+      y += maxH;
+    };
+
+    addRow(cols, true);
+
+    protectionSystems.forEach(sys => {
+      const lifeInfo = getServiceLifeInfo(sys.commissioning_date);
+      const contractInfo = getContractStatus(sys.contract_expiry);
+      addRow([
+        sys.system_name,
+        sys.condition || 'Ne ukazano',
+        sys.commissioning_date || '—',
+        lifeInfo ? lifeInfo.text : '—',
+        sys.project || '—',
+        sys.complex_tests || '—',
+        sys.maintenance_contract || 'Net',
+        sys.contract_expiry ? `${sys.contract_expiry} (${contractInfo ? contractInfo.text : ''})` : '—',
+      ]);
+    });
+
+    y += 8;
+    const active = protectionSystems.filter(s => s.condition !== 'Не требуется');
+    const ok = active.filter(s => s.condition === 'Исправна').length;
+    const repair = active.filter(s => s.condition === 'Требует ремонта' || s.condition === 'Неисправна').length;
+    const contracts = active.filter(s => s.maintenance_contract).length;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ITOGO:', 10, y); y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Vsego aktivnyh sistem: ${active.length}`, 10, y); y += 4;
+    doc.text(`Ispravny: ${ok} | Trebuyut remonta: ${repair}`, 10, y); y += 4;
+    doc.text(`S dogovorom TO: ${contracts} iz ${active.length}`, 10, y); y += 8;
+
+    doc.text('Podpis otvetstvennogo: _________________ / _________________ /', 10, y);
+
+    doc.save(`zhurnal-sistem-pzh-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
       <CardHeader>
@@ -151,25 +226,31 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
             </CardTitle>
             <CardDescription>Установленные на объекте (срок службы — {SERVICE_LIFE_YEARS} лет)</CardDescription>
           </div>
-          {!readOnly && (
-            !isEditingSystems ? (
-              <Button onClick={() => setIsEditingSystems(true)} variant="outline" className="gap-2">
-                <Icon name="Edit" size={16} />
-                Редактировать
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button onClick={saveSystems} disabled={savingSystems} className="gap-2">
-                  <Icon name={savingSystems ? 'Loader2' : 'Save'} size={16} className={savingSystems ? 'animate-spin' : ''} />
-                  {savingSystems ? 'Сохранение...' : 'Сохранить'}
+          <div className="flex gap-2">
+            <Button onClick={exportSystemsPDF} variant="outline" size="sm" className="gap-1.5" disabled={loadingSystems}>
+              <Icon name="Download" size={14} />
+              PDF
+            </Button>
+            {!readOnly && (
+              !isEditingSystems ? (
+                <Button onClick={() => setIsEditingSystems(true)} variant="outline" className="gap-2">
+                  <Icon name="Edit" size={16} />
+                  Редактировать
                 </Button>
-                <Button onClick={() => { setIsEditingSystems(false); fetchSystems(); }} variant="outline" className="gap-2">
-                  <Icon name="X" size={16} />
-                  Отмена
-                </Button>
-              </div>
-            )
-          )}
+              ) : (
+                <>
+                  <Button onClick={saveSystems} disabled={savingSystems} className="gap-2">
+                    <Icon name={savingSystems ? 'Loader2' : 'Save'} size={16} className={savingSystems ? 'animate-spin' : ''} />
+                    {savingSystems ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                  <Button onClick={() => { setIsEditingSystems(false); fetchSystems(); }} variant="outline" className="gap-2">
+                    <Icon name="X" size={16} />
+                    Отмена
+                  </Button>
+                </>
+              )
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
