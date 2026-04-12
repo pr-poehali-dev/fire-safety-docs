@@ -930,7 +930,7 @@ export default function AssessmentDashboard({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-0">
                 <label className="text-sm font-medium mb-2 block">
                   Период отображения
                 </label>
@@ -947,7 +947,7 @@ export default function AssessmentDashboard({
                 </Select>
               </div>
 
-              <div className="flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-0">
                 <label className="text-sm font-medium mb-2 block">
                   Фильтр по системам
                 </label>

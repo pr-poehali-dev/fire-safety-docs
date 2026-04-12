@@ -141,7 +141,7 @@ export default function SecurityEventsSection() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {[
           { label: 'Всего событий', value: stats ? (stats as Record<string, number>).total : '—', icon: 'FileText', bg: 'bg-blue-100', fg: 'text-blue-600' },
           { label: 'Info', value: bySeverity.info ?? 0, icon: 'Info', bg: 'bg-sky-100', fg: 'text-sky-600' },
@@ -186,7 +186,7 @@ export default function SecurityEventsSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2 items-end">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0">
               <Input
                 placeholder="Поиск по действию, ресурсу, email, деталям..."
                 value={filters.search}
@@ -195,7 +195,7 @@ export default function SecurityEventsSection() {
               />
             </div>
             <Select value={filters.category} onValueChange={(v) => setFilters(f => ({ ...f, category: v === 'all' ? '' : v }))}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Категория" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Категория" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все категории</SelectItem>
                 {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}

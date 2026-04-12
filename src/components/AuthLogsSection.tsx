@@ -84,7 +84,7 @@ export default function AuthLogsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -146,7 +146,7 @@ export default function AuthLogsSection() {
                 placeholder="Поиск по email..."
                 value={emailFilter}
                 onChange={(e) => setEmailFilter(e.target.value)}
-                className="w-60"
+                className="w-full sm:w-60"
               />
               <Button variant="outline" size="sm" onClick={() => loadLogs(page)} disabled={loading}>
                 <Icon name={loading ? 'Loader2' : 'RefreshCw'} size={16} className={loading ? 'animate-spin' : ''} />

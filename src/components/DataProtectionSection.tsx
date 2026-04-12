@@ -108,7 +108,7 @@ export default function DataProtectionSection() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-3">
@@ -179,7 +179,7 @@ export default function DataProtectionSection() {
           <CardDescription>AES-256-CBC с раздельным хранением ключей</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2"><Icon name="Lock" size={14} /> Шифруемые поля (ПДн)</h4>
               <div className="space-y-2">

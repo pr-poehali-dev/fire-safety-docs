@@ -8,7 +8,7 @@ const FAQSection = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="instructions" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
           <TabsTrigger value="instructions">
             <Icon name="BookOpen" size={16} className="mr-2" />
             Инструкция по заполнению

@@ -105,7 +105,7 @@ export default function FiresTab({ incidents, onIncidentsChange }: FiresTabProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
                 <p className="text-2xl font-bold text-red-600">{incidents.length}</p>
                 <p className="text-sm text-muted-foreground mt-1">Всего инцидентов</p>
