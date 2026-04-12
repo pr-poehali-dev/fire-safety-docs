@@ -6,7 +6,7 @@ import Icon from '@/components/ui/icon';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { createPDF } from '@/lib/pdfUtils';
 
 const SYSTEMS_API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const HIDDEN_SYSTEM_KEYS = ['fire_water'];
@@ -133,7 +133,7 @@ export default function AssessmentDashboard({
     setIsExporting(true);
     
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = await createPDF('p');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 15;

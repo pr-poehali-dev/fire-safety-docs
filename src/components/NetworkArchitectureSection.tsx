@@ -3,7 +3,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 import { INBOUND_RULES, OUTBOUND_RULES, INTERACTION_TABLE } from '@/components/network/networkArchitectureData';
 import NetworkDiagramTab from '@/components/network/NetworkDiagramTab';
 import { InboundRulesTab, OutboundRulesTab, InteractionsTab } from '@/components/network/NetworkFirewallTabs';
@@ -13,26 +13,26 @@ export default function NetworkArchitectureSection() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleExportPDF = async () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = await createPDF('p');
     const pageW = 190;
     let y = 15;
 
     doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Setevaya arhitektura i pravila MSE', 10, y);
+    setFontBold(doc);
+    doc.text('Сетевая архитектура и правила МСЭ', 10, y);
     y += 8;
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Data formirovaniya: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
+    setFontNormal(doc);
+    doc.text(`Дата формирования: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
     y += 8;
 
     const addTitle = (text: string, size: number) => {
       if (y > 270) { doc.addPage(); y = 15; }
       doc.setFontSize(size);
-      doc.setFont('helvetica', 'bold');
+      setFontBold(doc);
       doc.text(text, 10, y);
       y += size * 0.5;
-      doc.setFont('helvetica', 'normal');
+      setFontNormal(doc);
       doc.setFontSize(7);
     };
 
@@ -44,7 +44,7 @@ export default function NetworkArchitectureSection() {
         const lines = doc.splitTextToSize(c, widths[i] - 2);
         maxH = Math.max(maxH, lines.length * 3 + 1);
       });
-      doc.setFont('helvetica', header ? 'bold' : 'normal');
+      if (header) { setFontBold(doc); } else { setFontNormal(doc); }
       cells.forEach((c, i) => {
         const lines = doc.splitTextToSize(c, widths[i] - 2);
         lines.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3));
@@ -54,18 +54,18 @@ export default function NetworkArchitectureSection() {
       y += maxH;
     };
 
-    addTitle('1. Vhodyashchie pravila (Inbound)', 12);
+    addTitle('1. Входящие правила (Inbound)', 12);
     y += 2;
     const inW = [14, 30, 12, 22, 28, 18, pageW - 124];
-    addTableRow(['ID', 'Istochnik', 'Port', 'Protokol', 'Naznachenie', 'Deystvie', 'Obosnovanie'], inW, true);
+    addTableRow(['ID', 'Источник', 'Порт', 'Протокол', 'Назначение', 'Действие', 'Обоснование'], inW, true);
     INBOUND_RULES.forEach(r => {
       addTableRow([r.id, r.source, r.dstPort, r.protocol.split('/').pop() || '', r.destination, r.action, r.justification], inW);
     });
     y += 5;
 
-    addTitle('2. Ishodyashchie pravila (Outbound)', 12);
+    addTitle('2. Исходящие правила (Outbound)', 12);
     y += 2;
-    addTableRow(['ID', 'Istochnik', 'Port', 'Protokol', 'Naznachenie', 'Deystvie', 'Obosnovanie'], inW, true);
+    addTableRow(['ID', 'Источник', 'Порт', 'Протокол', 'Назначение', 'Действие', 'Обоснование'], inW, true);
     OUTBOUND_RULES.forEach(r => {
       addTableRow([r.id, r.source, r.dstPort, r.protocol.split('/').pop() || '', r.destination, r.action, r.justification], inW);
     });
@@ -73,10 +73,10 @@ export default function NetworkArchitectureSection() {
 
     doc.addPage();
     y = 15;
-    addTitle('3. Tablica informacionnyh vzaimodeystviy', 12);
+    addTitle('3. Таблица информационных взаимодействий', 12);
     y += 2;
     const intW = [28, 12, 22, 28, 34, 22, pageW - 146];
-    addTableRow(['Istochnik', 'Port', 'Protokol', 'Cel', 'Dannye', 'Chastota', 'Klass.'], intW, true);
+    addTableRow(['Источник', 'Порт', 'Протокол', 'Цель', 'Данные', 'Частота', 'Класс.'], intW, true);
     INTERACTION_TABLE.forEach(r => {
       addTableRow([r.from, r.port, r.protocol.split('/').pop() || r.protocol, r.to, r.dataType, r.frequency, r.classification], intW);
     });
