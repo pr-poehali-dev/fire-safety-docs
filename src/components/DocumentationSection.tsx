@@ -94,7 +94,7 @@ export default function DocumentationSection({ objectId }: { objectId?: number }
           {documentSubsections.map((subsection) => (
             <TabsContent key={subsection.id} value={subsection.id} className="mt-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded border border-border">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 gap-2 bg-muted/30 rounded border border-border">
                   <div className="flex items-center gap-3">
                     <Icon name={subsection.icon as any} size={20} className="text-muted-foreground" />
                     <div>

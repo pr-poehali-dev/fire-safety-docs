@@ -452,7 +452,7 @@ export default function AssessmentDashboard({
           </Card>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {metrics.map((metric, index) => {
             const percentage = (metric.value / metric.total) * 100;
             return (
@@ -535,7 +535,7 @@ export default function AssessmentDashboard({
             <CardDescription>Статистика подключенного оборудования и систем</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {monitoringStats.map((stat, index) => (
                 <div 
                   key={index} 
@@ -564,7 +564,7 @@ export default function AssessmentDashboard({
               <CardDescription>Данные по зарегистрированным пожарам за текущий период</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
                   <p className="text-2xl font-bold text-red-600">{fireIncidents.length}</p>
                   <p className="text-xs text-muted-foreground mt-1">Всего инцидентов</p>
@@ -621,7 +621,7 @@ export default function AssessmentDashboard({
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   {(() => {
                     const active = realSystems.filter(s => s.condition !== 'Не требуется');
                     const ok = active.filter(s => s.condition === 'Исправна').length;
@@ -824,7 +824,7 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-transparent dark:from-green-950 animate-in fade-in zoom-in" style={{ animationDelay: '100ms' }}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -898,7 +898,7 @@ export default function AssessmentDashboard({
             <CardDescription>Сравнение с предыдущим периодом</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Завершено задач</span>
@@ -1017,7 +1017,7 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '200ms' }}>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -1091,7 +1091,7 @@ export default function AssessmentDashboard({
           </Card>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '300ms' }}>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -1183,7 +1183,7 @@ export default function AssessmentDashboard({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border text-center">
                     <p className="text-2xl font-bold text-red-600">{fireIncidents.length}</p>
                     <p className="text-xs text-muted-foreground mt-1">Инцидентов</p>

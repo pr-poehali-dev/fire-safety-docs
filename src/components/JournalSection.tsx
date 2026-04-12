@@ -199,7 +199,7 @@ export default function JournalSection({
       </div>
 
       {headerFields && headerFields.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-md border border-blue-100">
+        <div className="grid gap-3 sm:grid-cols-2 p-2 sm:p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-md border border-blue-100">
           {headerFields.map((field) => (
             <div key={field.key} className="space-y-2">
               <Label>{field.label}</Label>

@@ -293,7 +293,7 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
                       )}
                     </div>
                   </div>
-                  <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-3 ${dimmed && !isEditingSystems ? 'hidden' : ''}`}>
+                  <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ${dimmed && !isEditingSystems ? 'hidden' : ''}`}>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Дата ввода в эксплуатацию</Label>
                       {isEditingSystems ? (

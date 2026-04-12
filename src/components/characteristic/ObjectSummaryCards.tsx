@@ -165,7 +165,7 @@ export default function ObjectSummaryCards({ objectId }: ObjectSummaryCardsProps
                 <p className="text-xs mt-1 text-muted-foreground">{journalCompletion >= 80 ? 'Хорошо' : journalCompletion >= 50 ? 'Внимание' : 'Критично'}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {JOURNAL_SECTIONS.map(sec => (
                 <div key={sec} className={`text-[10px] px-2 py-1 rounded flex items-center gap-1 ${journalCounts[sec] > 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${journalCounts[sec] > 0 ? 'bg-green-500' : 'bg-red-400'}`} />

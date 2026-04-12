@@ -96,7 +96,7 @@ export default function ObjectInfoCard({ objectData, onSave, onInputChange, read
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Наименование объекта *</Label>
               {renderField('name', objectData.name, (v) => onInputChange('name', v), 'Введите наименование')}

@@ -16,7 +16,7 @@ const MonitoringSection = ({ objectId }: { objectId?: number }) => {
       </Alert>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <TabsTrigger value="overview">
             <Icon name="Info" size={16} className="mr-2" />
             Общая информация
@@ -55,7 +55,7 @@ const MonitoringSection = ({ objectId }: { objectId?: number }) => {
                 эффективности оперативного контроля и автоматизации управления системами пожарной безопасности.
               </p>
 
-              <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon name="Building2" size={20} className="text-primary" />

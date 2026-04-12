@@ -113,7 +113,7 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
             <CardTitle className="text-base">Добавить помещение</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="room-name">Наименование помещения</Label>
                 <Input

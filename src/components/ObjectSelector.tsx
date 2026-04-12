@@ -54,18 +54,18 @@ export default function ObjectSelector() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Icon name="Flame" size={24} className="text-white" />
+      <div className="max-w-5xl mx-auto p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <Icon name="Flame" size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Журнал пожарной безопасности</h1>
-              <p className="text-muted-foreground text-sm">Выберите объект для работы</p>
+              <h1 className="text-xl sm:text-2xl font-bold">Журнал пожарной безопасности</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm">Выберите объект для работы</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
             <div className="text-right">
               <p className="text-sm font-medium">{user?.full_name}</p>
               <div className="flex items-center gap-2 justify-end">
@@ -142,7 +142,7 @@ export default function ObjectSelector() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {objects.map((obj: FireObject) => (
               <Card
                 key={obj.id}

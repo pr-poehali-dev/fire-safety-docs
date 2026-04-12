@@ -205,7 +205,7 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ogrn">ОГРН</Label>
                 <Input
@@ -237,7 +237,7 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="postalEmail">Почтовый и электронный адрес</Label>
                 <Input
@@ -280,7 +280,7 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fireResistance">Степень огнестойкости</Label>
                   <Input
