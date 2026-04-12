@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -41,8 +41,6 @@ export default function AssessmentDashboard({
 }: AssessmentDashboardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState('6');
-  const [systemFilter, setSystemFilter] = useState('all');
   const [realSystems, setRealSystems] = useState<RealProtectionSystem[]>([]);
   const [loadingSystems, setLoadingSystems] = useState(true);
   const [sectionCounts, setSectionCounts] = useState<Record<string, number>>({});
@@ -952,100 +950,62 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
-        {/* Фильтры и экспорт */}
         <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="Filter" size={20} className="text-blue-600" />
-              Фильтры данных
+              <Icon name="Download" size={20} className="text-blue-600" />
+              Экспорт графиков
             </CardTitle>
-            <CardDescription>Настройте отображение графиков</CardDescription>
+            <CardDescription>Скачайте графики по отдельности или полный отчёт</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-0">
-                <label className="text-sm font-medium mb-2 block">
-                  Период отображения
-                </label>
-                <Select value={periodFilter} onValueChange={setPeriodFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Выберите период" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3">Последние 3 месяца</SelectItem>
-                    <SelectItem value="6">Последние 6 месяцев</SelectItem>
-                    <SelectItem value="9">Последние 9 месяцев</SelectItem>
-                    <SelectItem value="12">Последние 12 месяцев</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <label className="text-sm font-medium mb-2 block">
-                  Фильтр по системам
-                </label>
-                <Select value={systemFilter} onValueChange={setSystemFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Выберите систему" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все системы</SelectItem>
-                    <SelectItem value="aups">Только АУПС</SelectItem>
-                    <SelectItem value="soue">Только СОУЭ</SelectItem>
-                    <SelectItem value="aupt">Только АУПТ</SelectItem>
-                    <SelectItem value="smoke">Только Противодымная</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => exportChartAsImage(chart1Ref, 'srabativaniya-sistem')}
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Download" size={16} />
-                  График 1
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Download" size={16} />
-                  График 2
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => exportChartAsImage(chart3Ref, 'vremya-otklika')}
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Download" size={16} />
-                  График 3
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => exportChartAsImage(chart4Ref, 'rabota-sistem')}
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Download" size={16} />
-                  График 4
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={exportAllChartsToPDF}
-                  disabled={isExporting}
-                  className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                >
-                  <Icon name="FileDown" size={16} />
-                  {isExporting ? 'Экспорт...' : 'PDF отчёт'}
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => exportChartAsImage(chart1Ref, 'sostoyanie-sistem-ppz')}
+                className="flex items-center gap-2"
+              >
+                <Icon name="Download" size={16} />
+                Системы ППЗ
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
+                className="flex items-center gap-2"
+              >
+                <Icon name="Download" size={16} />
+                Соответствие
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => exportChartAsImage(chart3Ref, 'aktivnost-polzovatelya')}
+                className="flex items-center gap-2"
+              >
+                <Icon name="Download" size={16} />
+                Активность
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => exportChartAsImage(chart4Ref, 'pozhary-10-let')}
+                className="flex items-center gap-2"
+              >
+                <Icon name="Download" size={16} />
+                Пожары
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={exportAllChartsToPDF}
+                disabled={isExporting}
+                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              >
+                <Icon name="FileDown" size={16} />
+                {isExporting ? 'Экспорт...' : 'PDF отчёт'}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1155,86 +1115,260 @@ export default function AssessmentDashboard({
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '300ms' }}>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Icon name="Activity" size={20} className="text-purple-500" />
-                Время отклика за неделю
-              </CardTitle>
-              <CardDescription>Скорость реагирования на события (в секундах)</CardDescription>
-            </CardHeader>
-            <CardContent ref={chart3Ref}>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={weeklyResponseTimeData}>
-                  <defs>
-                    <linearGradient id="colorResponseTime" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="day" className="text-xs" />
-                  <YAxis className="text-xs" label={{ value: 'Секунды', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="responseTime" 
-                    name="Время отклика" 
-                    stroke="#8b5cf6" 
-                    fillOpacity={1} 
-                    fill="url(#colorResponseTime)" 
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <Card className="animate-in fade-in slide-in-from-left" style={{ animationDelay: '300ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="UserCheck" size={20} className="text-purple-600" />
+              Активность пользователя и заполнение документов
+            </CardTitle>
+            <CardDescription>Процесс заполнения, объём работы и соблюдение сроков</CardDescription>
+          </CardHeader>
+          <CardContent ref={chart3Ref}>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-purple-600">{userActivityData.reduce((s, d) => s + d.filled, 0)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Заполнено записей</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950 dark:to-sky-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-blue-600">{userActivityData.reduce((s, d) => s + d.total, 0)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Всего требуется</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-green-600">{userActivityData.filter(d => d.onTime).length}/{userActivityData.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">В срок</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {userActivityData.map((item, i) => {
+                const pct = item.total > 0 ? Math.round((item.filled / item.total) * 100) : 0;
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.category}</span>
+                        {item.onTime ? (
+                          <Badge className="bg-green-100 text-green-700 text-[10px]">В срок</Badge>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-700 text-[10px]">Отставание</Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {item.filled}/{item.total} · срок: {item.deadline}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${item.onTime ? 'bg-green-500' : 'bg-red-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="animate-in fade-in slide-in-from-right" style={{ animationDelay: '300ms' }}>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Icon name="TrendingUp" size={20} className="text-blue-500" />
-                Время работы систем (Uptime)
-              </CardTitle>
-              <CardDescription>Процент времени бесперебойной работы</CardDescription>
-            </CardHeader>
-            <CardContent ref={chart4Ref}>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={systemUptimeData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis domain={[98, 100]} className="text-xs" label={{ value: '%', position: 'insideLeft', style: { fontSize: '12px' } }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }} 
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="uptime" 
-                    name="Uptime" 
-                    stroke="#10b981" 
-                    strokeWidth={3}
-                    dot={{ fill: '#10b981', r: 5 }}
-                    activeDot={{ r: 7 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="animate-in fade-in slide-in-from-right" style={{ animationDelay: '300ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="Flame" size={20} className="text-red-600" />
+              Пожары на объекте за 10 лет
+            </CardTitle>
+            <CardDescription>Материальный ущерб, пострадавшие, остановка производства, штрафы</CardDescription>
+          </CardHeader>
+          <CardContent ref={chart4Ref}>
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+              <div className="p-2 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 text-center">
+                <p className="text-lg font-bold text-red-600">{fireHistoryTotals.fires}</p>
+                <p className="text-[10px] text-muted-foreground">Пожаров</p>
+              </div>
+              <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 text-center">
+                <p className="text-lg font-bold text-orange-600">{fireHistoryTotals.damage.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Ущерб (тыс. р.)</p>
+              </div>
+              <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 text-center">
+                <p className="text-lg font-bold text-purple-600">{fireHistoryTotals.injured}</p>
+                <p className="text-[10px] text-muted-foreground">Пострадавших</p>
+              </div>
+              <div className="p-2 bg-slate-50 dark:bg-slate-950/30 rounded-lg border text-center">
+                <p className="text-lg font-bold text-slate-700">{fireHistoryTotals.killed}</p>
+                <p className="text-[10px] text-muted-foreground">Погибших</p>
+              </div>
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 text-center">
+                <p className="text-lg font-bold text-amber-600">{fireHistoryTotals.downtime}</p>
+                <p className="text-[10px] text-muted-foreground">Простой (дн.)</p>
+              </div>
+              <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 text-center">
+                <p className="text-lg font-bold text-blue-600">{fireHistoryTotals.fines.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Штрафы (тыс. р.)</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={fireHistoryData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="year" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { fires: 'Пожаров', damage: 'Ущерб (тыс.р.)', injured: 'Пострадавших', fines: 'Штрафы (тыс.р.)' };
+                    return [value, labels[name] || name];
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px' }} formatter={(v: string) => {
+                  const labels: Record<string, string> = { fires: 'Пожары', damage: 'Ущерб', injured: 'Пострадавшие', fines: 'Штрафы' };
+                  return labels[v] || v;
+                }} />
+                <Bar dataKey="fires" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="damage" fill="#f97316" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="injured" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="fines" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in fade-in slide-in-from-bottom border-t-4 border-t-indigo-500" style={{ animationDelay: '350ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="ClipboardCheck" size={20} className="text-indigo-600" />
+              Проверки и аудиты
+            </CardTitle>
+            <CardDescription>Процент выполнения предписаний, планирование и результаты</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg border border-indigo-200 text-center">
+                <p className="text-2xl font-bold text-indigo-600">{auditsData.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Всего проверок</p>
+              </div>
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 text-center">
+                <p className="text-2xl font-bold text-green-600">{auditsData.filter(a => a.status === 'completed').length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Завершены</p>
+              </div>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 text-center">
+                <p className="text-2xl font-bold text-amber-600">{auditsTotalPrescriptions}</p>
+                <p className="text-xs text-muted-foreground mt-1">Предписаний</p>
+              </div>
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 text-center">
+                <p className="text-2xl font-bold text-blue-600">{auditsCompletionPercent}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Выполнено</p>
+              </div>
+            </div>
+
+            <div className="w-full bg-muted rounded-full h-3 overflow-hidden mb-4">
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-700" style={{ width: `${auditsCompletionPercent}%` }} />
+            </div>
+
+            <div className="space-y-3">
+              {auditsData.map((audit, i) => {
+                const pct = audit.prescriptions > 0 ? Math.round((audit.fulfilled / audit.prescriptions) * 100) : 0;
+                return (
+                  <div key={i} className="p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name={audit.status === 'completed' ? 'CheckCircle2' : audit.status === 'in_progress' ? 'Clock' : 'CalendarDays'} size={16} className={
+                          audit.status === 'completed' ? 'text-green-500' : audit.status === 'in_progress' ? 'text-amber-500' : 'text-blue-500'
+                        } />
+                        <span className="text-sm font-medium">{audit.name}</span>
+                      </div>
+                      <Badge className={
+                        audit.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        audit.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
+                        'bg-blue-100 text-blue-700'
+                      }>
+                        {audit.status === 'completed' ? 'Завершена' : audit.status === 'in_progress' ? 'В процессе' : 'Запланирована'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>Дата: {audit.date}</span>
+                      {audit.prescriptions > 0 && (
+                        <>
+                          <span>Предписаний: {audit.fulfilled}/{audit.prescriptions}</span>
+                          <span>Срок: {audit.deadline}</span>
+                        </>
+                      )}
+                    </div>
+                    {audit.prescriptions > 0 && (
+                      <div className="w-full bg-muted rounded-full h-1.5 mt-2 overflow-hidden">
+                        <div className={`h-full rounded-full ${pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in fade-in slide-in-from-bottom border-t-4 border-t-teal-500" style={{ animationDelay: '400ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon name="Wrench" size={20} className="text-teal-600" />
+              Своевременность ТО, замена оборудования и испытания
+            </CardTitle>
+            <CardDescription>Комплексные испытания, плановые ТО, ремонт и замена по системам ППЗ</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 text-center">
+                <p className="text-2xl font-bold text-green-600">{maintenanceSchedule.filter(m => m.status === 'on_time').length}</p>
+                <p className="text-xs text-muted-foreground mt-1">В срок</p>
+              </div>
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 text-center">
+                <p className="text-2xl font-bold text-red-600">{maintenanceSchedule.filter(m => m.status === 'overdue').length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Просрочено</p>
+              </div>
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 text-center">
+                <p className="text-2xl font-bold text-blue-600">{maintenanceSchedule.filter(m => m.status === 'planned').length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Запланировано</p>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border text-center">
+                <p className="text-2xl font-bold text-slate-700">{maintenanceSchedule.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Всего мероприятий</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {maintenanceSchedule.map((item, i) => (
+                <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border transition-shadow hover:shadow-sm ${
+                  item.status === 'overdue' ? 'bg-red-50/50 border-red-200 dark:bg-red-950/20' :
+                  item.status === 'planned' ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-950/20' :
+                  'bg-card'
+                }`}>
+                  <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${
+                    item.status === 'on_time' ? 'bg-green-500' : item.status === 'overdue' ? 'bg-red-500' : 'bg-blue-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-medium">{item.system}</span>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <span className="text-xs text-muted-foreground">{item.type}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Посл.: {item.lastDate}</span>
+                      <span>След.: {item.nextDate}</span>
+                      <span className="text-[10px]">{item.responsible}</span>
+                    </div>
+                  </div>
+                  <Badge className={
+                    item.status === 'on_time' ? 'bg-green-100 text-green-700' :
+                    item.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                    'bg-blue-100 text-blue-700'
+                  }>
+                    {item.status === 'on_time' ? 'В срок' : item.status === 'overdue' ? 'Просрочено' : 'План'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {fireIncidents.length > 0 && (
           <Card className="animate-in fade-in slide-in-from-bottom bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 border-red-200 dark:border-red-800" style={{ animationDelay: '400ms' }}>
