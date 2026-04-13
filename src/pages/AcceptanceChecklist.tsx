@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 type CheckStatus = 'pending' | 'passed' | 'failed' | 'na';
 
@@ -182,17 +182,17 @@ export default function AcceptanceChecklist() {
   const isComplete = pendingCount === 0;
   const verdict = isComplete && failedCount === 0 ? 'accepted' : isComplete && failedCount > 0 ? 'rejected' : 'in_progress';
 
-  const exportPDF = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
+  const exportPDF = async () => {
+    const doc = await createPDF('p');
     const pw = 190;
     let y = 15;
 
     const addTitle = (t: string, s = 14) => {
-      doc.setFontSize(s); doc.setFont('helvetica', 'bold');
+      doc.setFontSize(s); setFontBold(doc);
       doc.text(t, 10, y); y += s * 0.7;
     };
     const addText = (t: string, s = 9) => {
-      doc.setFontSize(s); doc.setFont('helvetica', 'normal');
+      doc.setFontSize(s); setFontNormal(doc);
       doc.splitTextToSize(t, pw).forEach((l: string) => {
         if (y > 275) { doc.addPage(); y = 15; }
         doc.text(l, 10, y); y += s * 0.5;
@@ -200,7 +200,7 @@ export default function AcceptanceChecklist() {
     };
     const addRow = (cols: string[], ws: number[], bold = false) => {
       if (y > 262) { doc.addPage(); y = 15; }
-      doc.setFontSize(7); doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(7); if (bold) { setFontBold(doc); } else { setFontNormal(doc); }
       let x = 10;
       let maxH = 4;
       cols.forEach((c, i) => {
@@ -216,17 +216,17 @@ export default function AcceptanceChecklist() {
       y += maxH;
     };
 
-    addTitle('AKT PRIEMKI — Chek-list proverki PZI', 16);
+    addTitle('АКТ ПРИЁМКИ — Чек-лист проверки ПЗИ', 16);
     y += 2;
-    addText(`Organizaciya: ${organization}`);
-    addText(`Proverka provedena: ${inspector || '(ne ukazano)'}`);
-    addText(`Data: ${new Date().toLocaleDateString('ru-RU')}`);
+    addText(`Организация: ${organization}`);
+    addText(`Проверка проведена: ${inspector || '(не указано)'}`);
+    addText(`Дата: ${new Date().toLocaleDateString('ru-RU')}`);
     y += 2;
-    addText(`Itogo: ${passedCount} passed / ${failedCount} failed / ${naCount} N/A / ${pendingCount} pending iz ${totalCount}`);
-    addText(`Progress: ${progressPct}%`);
+    addText(`Итого: ${passedCount} пройдено / ${failedCount} не пройдено / ${naCount} N/A / ${pendingCount} ожидание из ${totalCount}`);
+    addText(`Прогресс: ${progressPct}%`);
 
-    const verdictText = verdict === 'accepted' ? 'PRINYATO — vse proverki projdeny' : verdict === 'rejected' ? 'NE PRINYATO — est ne projdennye proverki' : 'V PROCESSE — ne vse proverki zaversheny';
-    addText(`Reshenie: ${verdictText}`);
+    const verdictText = verdict === 'accepted' ? 'ПРИНЯТО — все проверки пройдены' : verdict === 'rejected' ? 'НЕ ПРИНЯТО — есть непройденные проверки' : 'В ПРОЦЕССЕ — не все проверки завершены';
+    addText(`Решение: ${verdictText}`);
     y += 5;
 
     groups.forEach(g => {
@@ -234,7 +234,7 @@ export default function AcceptanceChecklist() {
       addTitle(`${g.emoji} ${g.title}`, 11);
       y += 2;
       const ws = [14, 80, 20, 30, pw - 144];
-      addRow(['ID', 'Proverka', 'Status', 'Proveril', 'Primechanie'], ws, true);
+      addRow(['ID', 'Проверка', 'Статус', 'Проверил', 'Примечание'], ws, true);
       g.items.forEach(it => {
         const statusLabel = STATUS_CONFIG[it.status].label;
         addRow([it.id.toUpperCase(), it.text, statusLabel, it.tester || '—', it.note || '—'], ws);
@@ -244,10 +244,10 @@ export default function AcceptanceChecklist() {
 
     y += 6;
     if (y > 240) { doc.addPage(); y = 15; }
-    addText('Podpisi:'); y += 5;
-    addText('Predsedatel komissii: _________________ / _________________ /'); y += 5;
-    addText('Chlen komissii:      _________________ / _________________ /'); y += 5;
-    addText('Chlen komissii:      _________________ / _________________ /');
+    addText('Подписи:'); y += 5;
+    addText('Председатель комиссии: _________________ / _________________ /'); y += 5;
+    addText('Член комиссии:      _________________ / _________________ /'); y += 5;
+    addText('Член комиссии:      _________________ / _________________ /');
 
     doc.save('akt-priemki-pzi.pdf');
   };

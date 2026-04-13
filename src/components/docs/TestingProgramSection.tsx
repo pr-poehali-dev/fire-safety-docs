@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 interface TestCheck {
   id: string;
@@ -68,19 +68,19 @@ const PROTOCOL_TEMPLATE = {
   conclusion: 'ПЗИ считается прошедшей испытание, если все тесты категории «Критический» (T-01…T-06, T-13…T-17) выполнены успешно И не менее 90% всех тестов завершены положительно.',
 };
 
-function exportPDF(checks: TestCheck[], notes: string) {
-  const doc = new jsPDF('p', 'mm', 'a4');
+async function exportPDF(checks: TestCheck[], notes: string) {
+  const doc = await createPDF('p');
   const pw = 190;
   let y = 15;
 
-  const title = (t: string, s = 14) => { doc.setFontSize(s); doc.setFont('helvetica', 'bold'); doc.text(t, 10, y); y += s * 0.7; };
+  const title = (t: string, s = 14) => { doc.setFontSize(s); setFontBold(doc); doc.text(t, 10, y); y += s * 0.7; };
   const text = (t: string, s = 9) => {
-    doc.setFontSize(s); doc.setFont('helvetica', 'normal');
+    doc.setFontSize(s); setFontNormal(doc);
     doc.splitTextToSize(t, pw).forEach((l: string) => { if (y > 275) { doc.addPage(); y = 15; } doc.text(l, 10, y); y += s * 0.5; });
   };
   const row = (cols: string[], ws: number[], bold = false) => {
     if (y > 265) { doc.addPage(); y = 15; }
-    doc.setFontSize(6.5); doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(6.5); if (bold) { setFontBold(doc); } else { setFontNormal(doc); }
     let x = 10; let maxH = 4;
     cols.forEach((c, i) => { maxH = Math.max(maxH, doc.splitTextToSize(c, ws[i] - 2).length * 2.5 + 1); });
     cols.forEach((c, i) => {
@@ -90,26 +90,26 @@ function exportPDF(checks: TestCheck[], notes: string) {
     y += maxH;
   };
 
-  title('Prilozhenie G. Protokol ispytaniy PZI', 14);
+  title('Приложение Г. Протокол испытаний ПЗИ', 14);
   y += 2;
   PROTOCOL_TEMPLATE.fields.forEach(f => text(`${f.label}: ${f.value}`));
   y += 4;
 
-  title('Rezultaty ispytaniy', 12);
+  title('Результаты испытаний', 12);
   y += 2;
   const cw = [12, 35, 42, 42, 42, pw - 173];
-  row(['ID', 'Podsistema', 'Test', 'Metod', 'Kriteriy', 'Rezultat'], cw, true);
+  row(['ID', 'Подсистема', 'Тест', 'Метод', 'Критерий', 'Результат'], cw, true);
   checks.forEach(c => {
-    const res = c.passed === null ? 'Ne provereno' : c.passed ? 'PASSED' : 'FAILED';
+    const res = c.passed === null ? 'Не проверено' : c.passed ? 'PASSED' : 'FAILED';
     row([c.id, c.subsystem, c.test, c.method, c.criteria, res], cw);
   });
 
   y += 5;
   const passed = checks.filter(c => c.passed === true).length;
   const total = checks.length;
-  text(`Itogo: ${passed}/${total} testov (${Math.round(passed / total * 100)}%)`);
+  text(`Итого: ${passed}/${total} тестов (${Math.round(passed / total * 100)}%)`);
   y += 3;
-  text('Kriteriy uspeshnosti: ' + PROTOCOL_TEMPLATE.conclusion);
+  text('Критерий успешности: ' + PROTOCOL_TEMPLATE.conclusion);
   y += 3;
   if (notes) { text('Primechaniya: ' + notes); }
   y += 8;
