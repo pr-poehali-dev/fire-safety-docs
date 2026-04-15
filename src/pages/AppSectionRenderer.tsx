@@ -67,15 +67,15 @@ export default function AppSectionRenderer({
       return <FiresTab incidents={fireIncidents} onIncidentsChange={onFireIncidentsChange} objectId={objectId} />;
     case 'journal':
       return (
-        <div>
+        <div className="animate-fade-in">
           <Tabs value={activeJournalSubsection} onValueChange={setActiveJournalSubsection}>
-            <div className="mb-6">
-              <TabsList className="flex flex-wrap gap-1.5 bg-transparent p-0 h-auto">
+            <div className="mb-6 -mx-1 px-1 overflow-x-auto scrollbar-thin">
+              <TabsList className="flex flex-nowrap sm:flex-wrap gap-1.5 bg-transparent p-0 h-auto min-w-max sm:min-w-0">
                 {journalSubsections.map((subsection) => (
                   <TabsTrigger
                     key={subsection.id}
                     value={subsection.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 hover:bg-gray-50 transition-all text-xs"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/50 data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-sm hover:bg-muted/50 transition-all text-xs whitespace-nowrap"
                   >
                     <Icon name={subsection.icon} size={14} />
                     <span className="font-medium">{subsection.title}</span>
@@ -89,8 +89,9 @@ export default function AppSectionRenderer({
                   sectionId={subsection.id}
                   title={subsection.fullTitle}
                   icon={subsection.icon}
-                  color="bg-blue-500"
+                  color="bg-primary"
                   fields={subsection.fields}
+                  headerFields={subsection.headerFields}
                   onSave={(data) => console.log('Saved:', data)}
                   objectId={objectId}
                 />

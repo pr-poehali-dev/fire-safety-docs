@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
@@ -164,6 +165,68 @@ export default function JournalSection({
     }
   };
 
+  const handleExportPDF = async () => {
+    const doc = await createPDF('l');
+    const pw = 277;
+    let y = 15;
+
+    setFontBold(doc);
+    doc.setFontSize(14);
+    doc.text(title, 10, y);
+    y += 7;
+
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text(`Дата формирования: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
+    y += 4;
+    doc.text(`Всего записей: ${entries.length}`, 10, y);
+    y += 4;
+
+    if (headerFields && headerFields.length > 0) {
+      headerFields.forEach(hf => {
+        doc.text(`${hf.label}: ${headerData[hf.key] || '—'}`, 10, y);
+        y += 4;
+      });
+    }
+    y += 4;
+
+    const colCount = fields.length + 1;
+    const numW = 10;
+    const dataW = Math.floor((pw - numW) / fields.length);
+    const widths = [numW, ...fields.map(() => dataW)];
+
+    const addRow = (cells: string[], bold = false) => {
+      if (y > 185) { doc.addPage(); y = 15; }
+      doc.setFontSize(7);
+      if (bold) { setFontBold(doc); } else { setFontNormal(doc); }
+      let x = 10;
+      let maxH = 5;
+      cells.forEach((c, i) => {
+        const ls = doc.splitTextToSize(c, widths[i] - 2);
+        maxH = Math.max(maxH, ls.length * 3 + 1);
+      });
+      cells.forEach((c, i) => {
+        const ls = doc.splitTextToSize(c, widths[i] - 2);
+        ls.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3));
+        doc.rect(x, y - 3, widths[i], maxH);
+        x += widths[i];
+      });
+      y += maxH;
+    };
+
+    addRow(['№', ...fields.map(f => f.label)], true);
+    entries.forEach((entry, idx) => {
+      addRow([String(idx + 1), ...fields.map(f => entry.entry_data[f.key] || '—')]);
+    });
+
+    y += 8;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text('Подпись ответственного: _________________ / _________________ /', 10, y);
+
+    doc.save(`журнал-${sectionId}-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -176,37 +239,44 @@ export default function JournalSection({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shadow-md`}>
+          <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shadow-md flex-shrink-0`}>
             <Icon name={icon as "Home"} className="text-white" size={20} />
           </div>
-          <div>
-            <h3 className="font-semibold text-base leading-tight">{title}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">п.54 Правил противопожарного режима в РФ</p>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm sm:text-base leading-tight truncate">{title}</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">п.54 Правил противопожарного режима в РФ</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {lastSaved && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Icon name="Check" size={12} className="text-green-500" />
+              <Icon name="Check" size={12} className="text-success" />
               {lastSaved.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
-          <Badge variant="secondary" className="text-xs">{entries.length} записей</Badge>
+          <Badge variant="secondary" className="text-xs font-medium">{entries.length} записей</Badge>
+          {entries.length > 0 && (
+            <Button onClick={handleExportPDF} variant="outline" size="sm" className="gap-1.5 h-8 text-xs rounded-lg">
+              <Icon name="Download" size={13} />
+              PDF
+            </Button>
+          )}
         </div>
       </div>
 
       {headerFields && headerFields.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 p-2 sm:p-4 bg-gradient-to-r from-blue-50/80 to-transparent rounded-md border border-blue-100">
+        <div className="grid gap-3 sm:grid-cols-2 p-3 sm:p-4 bg-muted/30 rounded-xl border border-border/50">
           {headerFields.map((field) => (
-            <div key={field.key} className="space-y-2">
-              <Label>{field.label}</Label>
+            <div key={field.key} className="space-y-1.5">
+              <Label className="text-xs font-medium">{field.label}</Label>
               <Input
                 type={field.type || 'text'}
                 value={headerData[field.key] || ''}
                 onChange={(e) => handleHeaderChange(field.key, e.target.value)}
+                className="h-9 text-sm rounded-lg"
               />
             </div>
           ))}
@@ -214,28 +284,28 @@ export default function JournalSection({
       )}
 
       {entries.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 animate-stagger">
           {entries.map((row, index) => (
             <div
               key={row.id}
-              className="group p-3 bg-white border border-gray-100 rounded-xl hover:border-gray-200 hover:shadow-sm transition-all"
+              className="group p-3 bg-card border border-border/50 rounded-xl hover:border-primary/20 hover:shadow-sm transition-all duration-200"
             >
-              <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-500">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/60">
                   {index + 1}
                 </span>
-                <div className="flex-1 grid gap-x-4 gap-y-1" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 3)}, 1fr)` }}>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 min-w-0">
                   {fields.map((field) => (
                     <div key={field.key} className="min-w-0">
-                      <p className="text-xs text-muted-foreground mb-0.5 truncate">{field.label}</p>
-                      <p className="text-sm leading-snug truncate" title={row.entry_data[field.key] || '-'}>{row.entry_data[field.key] || '-'}</p>
+                      <p className="text-[11px] text-muted-foreground mb-0.5 truncate">{field.label}</p>
+                      <p className="text-sm leading-snug break-words" title={row.entry_data[field.key] || '-'}>{row.entry_data[field.key] || '-'}</p>
                     </div>
                   ))}
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                  className="opacity-0 group-hover:opacity-100 sm:opacity-100 sm:group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0 rounded-lg"
                   onClick={() => handleDeleteEntry(row.id)}
                 >
                   <Icon name="Trash2" size={14} />
@@ -247,48 +317,51 @@ export default function JournalSection({
       )}
 
       {entries.length === 0 && !isFormOpen && (
-        <div className="text-center py-10 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50">
-          <Icon name="FileText" size={32} className="mx-auto text-gray-300 mb-2" />
-          <p className="text-sm text-muted-foreground">Записей пока нет</p>
-          <p className="text-xs text-muted-foreground mt-1">Нажмите кнопку ниже, чтобы добавить первую запись</p>
+        <div className="text-center py-12 rounded-2xl border-2 border-dashed border-border bg-muted/20">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3">
+            <Icon name="FileText" size={24} className="text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">Записей пока нет</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Нажмите кнопку ниже, чтобы добавить первую запись</p>
         </div>
       )}
 
       {isFormOpen ? (
-        <Card className="border-blue-200 shadow-md">
-          <CardHeader className="pb-3 pt-4 px-4">
+        <Card className="border-primary/20 shadow-lg animate-scale-in overflow-hidden">
+          <CardHeader className="pb-3 pt-4 px-4 bg-primary/5">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Icon name="PlusCircle" size={16} className="text-blue-500" />
+              <Icon name="PlusCircle" size={16} className="text-primary" />
               Новая запись
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-4 pb-4 pt-4">
             <div className="grid gap-4 sm:grid-cols-2">
               {fields.map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <Label>{field.label}</Label>
+                <div key={field.key} className="space-y-1.5">
+                  <Label className="text-xs font-medium">{field.label}</Label>
                   <Input
                     type={field.type === 'textarea' ? 'text' : (field.type || 'text')}
                     value={newEntry[field.key] || ''}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
                     placeholder="Введите данные"
+                    className="h-9 text-sm rounded-lg"
                   />
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 mt-4 justify-end">
+            <div className="flex gap-2 mt-5 justify-end">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => { setIsFormOpen(false); setNewEntry({}); }}
-                className="text-xs"
+                className="text-xs rounded-lg"
               >
                 Отмена
               </Button>
               <Button
                 size="sm"
                 onClick={handleAddEntry}
-                className="text-xs gap-1.5"
+                className="text-xs gap-1.5 rounded-lg shadow-sm"
               >
                 <Icon name="Check" size={14} />
                 Сохранить
@@ -299,7 +372,7 @@ export default function JournalSection({
       ) : (
         <Button
           variant="outline"
-          className="w-full border-dashed gap-2 text-sm"
+          className="w-full border-dashed gap-2 text-sm h-12 rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-colors"
           onClick={() => setIsFormOpen(true)}
         >
           <Icon name="Plus" size={16} />

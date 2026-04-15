@@ -102,7 +102,7 @@ const AppPage = () => {
   return (
     <>
       {isLoading && <LoadingIndicator />}
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
+      <div className="min-h-screen bg-background">
         <div className="flex">
           <AppSidebar
             sections={mainSections}
@@ -114,21 +114,25 @@ const AppPage = () => {
             onLogout={logout}
           />
 
-          <div className="lg:ml-80 flex-1 p-3 pt-16 sm:p-4 sm:pt-16 lg:p-8 lg:pt-8 min-w-0">
-            <Card className="shadow-lg">
-              <CardContent className="p-3 sm:p-4 lg:p-6">
-                <AppSectionRenderer
-                  activeSection={activeSection}
-                  objectData={objectData}
-                  objectId={objectId}
-                  fireIncidents={fireIncidents}
-                  onSaveObject={handleSaveObject}
-                  onInputChange={handleInputChange}
-                  onFireIncidentsChange={setFireIncidents}
-                  isReadOnlyCharacteristic={isReadOnlyCharacteristic}
-                />
-              </CardContent>
-            </Card>
+          <div className="lg:ml-72 flex-1 pt-16 lg:pt-0 min-w-0">
+            <div className="p-3 sm:p-5 lg:p-8 max-w-[1400px] mx-auto">
+              <Card className="shadow-sm border-border/50 overflow-hidden">
+                <CardContent className="p-3 sm:p-5 lg:p-8">
+                  <div className="animate-fade-in">
+                    <AppSectionRenderer
+                      activeSection={activeSection}
+                      objectData={objectData}
+                      objectId={objectId}
+                      fireIncidents={fireIncidents}
+                      onSaveObject={handleSaveObject}
+                      onInputChange={handleInputChange}
+                      onFireIncidentsChange={setFireIncidents}
+                      isReadOnlyCharacteristic={isReadOnlyCharacteristic}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <ChatAssistant />

@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 interface Procedure {
   step: number;
@@ -49,13 +49,13 @@ const PATCH_MANAGEMENT: Procedure[] = [
   { step: 7, title: 'Документирование', details: 'Зафиксировать в журнале событий ИБ: какой патч применён, дата, кем, результат. Обновить SBOM в разделе «Отчёт безопасности».', responsible: 'Администратор ИБ' },
 ];
 
-function exportPDF() {
-  const doc = new jsPDF('p', 'mm', 'a4');
+async function exportPDF() {
+  const doc = await createPDF('p');
   const pw = 190;
   let y = 15;
-  const title = (t: string, s = 14) => { doc.setFontSize(s); doc.setFont('helvetica', 'bold'); doc.text(t, 10, y); y += s * 0.7; };
+  const title = (t: string, s = 14) => { doc.setFontSize(s); setFontBold(doc); doc.text(t, 10, y); y += s * 0.7; };
   const text = (t: string, s = 9) => {
-    doc.setFontSize(s); doc.setFont('helvetica', 'normal');
+    doc.setFontSize(s); setFontNormal(doc);
     doc.splitTextToSize(t, pw).forEach((l: string) => { if (y > 275) { doc.addPage(); y = 15; } doc.text(l, 10, y); y += s * 0.5; });
   };
   const procSection = (name: string, procs: Procedure[]) => {
@@ -63,27 +63,27 @@ function exportPDF() {
     title(name, 12); y += 2;
     procs.forEach(p => {
       if (y > 260) { doc.addPage(); y = 15; }
-      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9); setFontBold(doc);
       doc.text(`${p.step}. ${p.title}`, 10, y); y += 4;
       text(p.details);
-      text(`Otvetstvennyy: ${p.responsible}`);
+      text(`Ответственный: ${p.responsible}`);
       if (p.note) { text(`! ${p.note}`); }
       y += 2;
     });
   };
 
-  title('Rukovodstvo administratora PZI', 16); y += 2;
-  text('Sistema: Podsistema pozharnoy bezopasnosti (SPB RUSAL)');
-  text('Data: ' + new Date().toLocaleDateString('ru-RU'));
-  text('Versiya: 1.0'); y += 5;
+  title('Руководство администратора ПЗИ', 16); y += 2;
+  text('Система: Подсистема пожарной безопасности (СПБ РУСАЛ)');
+  text('Дата: ' + new Date().toLocaleDateString('ru-RU'));
+  text('Версия: 1.0'); y += 5;
 
-  procSection('1. Poryadok dobavleniya polzovateley', USER_MANAGEMENT);
+  procSection('1. Порядок добавления пользователей', USER_MANAGEMENT);
   y += 3;
-  procSection('2. Poryadok blokirovki/udaleniya polzovateley', USER_DELETION);
+  procSection('2. Порядок блокировки/удаления пользователей', USER_DELETION);
   y += 3;
-  procSection('3. Deystviya pri podozrenii na komprometaciyu', COMPROMISE_ACTIONS);
+  procSection('3. Действия при подозрении на компрометацию', COMPROMISE_ACTIONS);
   y += 3;
-  procSection('4. Reglament obnovleniya i primeneniya patchey', PATCH_MANAGEMENT);
+  procSection('4. Регламент обновления и применения патчей', PATCH_MANAGEMENT);
 
   doc.save('rukovodstvo-administratora-pzi.pdf');
 }

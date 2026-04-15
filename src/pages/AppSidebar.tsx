@@ -29,16 +29,7 @@ export default function AppSidebar({
   onLogout,
 }: AppSidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [atBottom, setAtBottom] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleScroll = useCallback(() => {
-    const el = sidebarRef.current;
-    if (!el) return;
-    setScrolled(el.scrollTop > 10);
-    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 10);
-  }, []);
 
   const handleSectionClick = (id: string) => {
     onSectionChange(id);
@@ -55,116 +46,129 @@ export default function AppSidebar({
   }, [mobileOpen]);
 
   const activeTitle = sections.find(s => s.id === activeSection)?.title || '';
+  const activeIcon = sections.find(s => s.id === activeSection)?.icon || 'Menu';
 
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 to-orange-500 shadow-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => setMobileOpen(true)} className="text-white p-1">
-            <Icon name="Menu" size={24} />
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 glass shadow-sm">
+        <div className="flex items-center gap-3 px-4 py-3 mobile-safe-bottom">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:scale-95 transition-transform"
+          >
+            <Icon name="Menu" size={20} />
           </button>
-          <div className="flex-1 text-center min-w-0 px-3">
-            <p className="text-white text-sm font-medium truncate">{activeTitle}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">{activeTitle}</p>
+            {objectName && <p className="text-xs text-muted-foreground truncate">{objectName}</p>}
           </div>
-          <div className="w-8" />
+          <button
+            onClick={onBackToList}
+            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground active:scale-95 transition-transform"
+          >
+            <Icon name="ArrowLeft" size={18} />
+          </button>
         </div>
       </div>
 
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-50"
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <div
         ref={sidebarRef}
-        onScroll={handleScroll}
         className={`
-          fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg overflow-y-auto z-50
-          w-80
-          transition-transform duration-300 ease-in-out
-          lg:translate-x-0
+          fixed top-0 left-0 h-screen bg-white border-r border-border/50 shadow-xl overflow-y-auto z-50 scrollbar-thin
+          w-72
+          transition-transform duration-300 ease-out
+          lg:translate-x-0 lg:shadow-none
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {scrolled && (
-          <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/10 to-transparent z-10 pointer-events-none" />
-        )}
-        <div className={`p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-orange-500 ${scrolled ? '-mt-4' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div className="bg-white rounded-xl px-4 py-3 inline-block mb-3">
+        <div className="sticky top-0 z-10 bg-gradient-to-br from-slate-900 to-slate-800 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-white/10 backdrop-blur rounded-xl px-3 py-2">
               <img
                 src="https://cdn.poehali.dev/projects/fc8972aa-4cef-4b81-a7f2-8d2dc556f071/bucket/4ad57d25-eeff-4ea2-9c47-a108c700f08b.png"
                 alt="Код безопасности РУСАЛ"
-                className="h-14 object-contain"
+                className="h-10 object-contain"
               />
             </div>
             <button
               onClick={() => setMobileOpen(false)}
-              className="lg:hidden text-white/80 hover:text-white p-1 mb-3"
+              className="lg:hidden w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors"
             >
-              <Icon name="X" size={24} />
+              <Icon name="X" size={18} />
             </button>
           </div>
-          <h1 className="text-sm font-semibold text-white/90 leading-snug">
-            Система управления<br />пожарной безопасностью
+          <h1 className="text-xs font-medium text-white/60 uppercase tracking-wider">
+            Система управления ПБ
           </h1>
           {objectName && (
-            <p className="text-xs text-white/70 mt-2 truncate">{objectName}</p>
+            <p className="text-sm text-white/90 font-medium mt-1 truncate">{objectName}</p>
           )}
         </div>
 
-        <div className="p-4 space-y-1">
+        <div className="p-3 border-b border-border/50 flex gap-1">
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => { onBackToList(); setMobileOpen(false); }}
-            className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900"
+            className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground h-9 text-xs"
           >
-            <Icon name="ArrowLeft" size={20} />
-            <span>К списку объектов</span>
+            <Icon name="ArrowLeft" size={16} />
+            Объекты
           </Button>
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => { onGoHome(); setMobileOpen(false); }}
-            className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900"
+            className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
           >
-            <Icon name="Home" size={20} />
-            <span>На главную</span>
+            <Icon name="Home" size={16} />
           </Button>
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => { onLogout(); setMobileOpen(false); }}
-            className="w-full justify-start gap-2 text-gray-600 hover:text-red-600"
+            className="h-9 w-9 p-0 text-muted-foreground hover:text-red-600"
           >
-            <Icon name="LogOut" size={20} />
-            <span>Выйти</span>
+            <Icon name="LogOut" size={16} />
           </Button>
         </div>
 
-        <nav className="px-4 pb-4 space-y-1">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => handleSectionClick(section.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-3 ${
-                activeSection === section.id
-                  ? section.color + ' text-white shadow-md'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Icon
-                name={section.icon}
-                size={20}
-                className={activeSection === section.id ? '' : 'text-gray-500'}
-              />
-              <span className="text-sm">{section.title}</span>
-            </button>
-          ))}
+        <nav className="p-2 space-y-0.5">
+          {sections.map((section, idx) => {
+            const isActive = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                onClick={() => handleSectionClick(section.id)}
+                className={`w-full text-left px-3 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 group animate-slide-up`}
+                style={{ animationDelay: `${idx * 20}ms` }}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                  isActive
+                    ? `${section.color} text-white shadow-md`
+                    : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
+                }`}>
+                  <Icon name={section.icon} size={16} />
+                </div>
+                <span className={`text-sm truncate transition-colors ${
+                  isActive ? 'text-foreground font-semibold' : 'text-muted-foreground group-hover:text-foreground'
+                }`}>
+                  {section.title}
+                </span>
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-scale-in" />
+                )}
+              </button>
+            );
+          })}
         </nav>
-        {!atBottom && (
-          <div className="sticky bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-        )}
       </div>
     </>
   );

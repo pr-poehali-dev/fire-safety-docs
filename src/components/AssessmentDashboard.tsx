@@ -387,28 +387,30 @@ export default function AssessmentDashboard({
   const warningSections = metrics.filter(m => m.status === 'warning');
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center animate-in zoom-in duration-500">
-            <Icon name="BarChart3" className="text-white" size={24} />
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardHeader className="px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-200/50 flex-shrink-0 animate-scale-in">
+              <Icon name="BarChart3" className="text-white" size={22} />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-lg sm:text-xl truncate">Оценка пожарной безопасности</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Состояние ПБ в режиме реального времени</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle>Оценка пожарной безопасности и риски</CardTitle>
-            <CardDescription>Интерактивный дашборд состояния ПБ в режиме реального времени</CardDescription>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant="outline" className="flex items-center gap-1.5 rounded-lg h-8">
+              <div className="h-2 w-2 rounded-full bg-success animate-pulse"></div>
               Онлайн
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              Обновлено: {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
+              {new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 px-0">
         <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30 shadow-lg overflow-hidden relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
           <CardContent className="pt-6 relative">
@@ -483,102 +485,91 @@ export default function AssessmentDashboard({
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 animate-stagger">
           {metrics.map((metric, index) => {
             const percentage = (metric.value / metric.total) * 100;
             return (
               <Card 
                 key={index} 
-                className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 animate-in fade-in slide-in-from-bottom-4"
-                style={{ 
-                  animationDelay: `${index * 100}ms`,
-                  borderLeftColor: metric.color.replace('bg-', '')
-                }}
+                className="card-hover cursor-default border border-border/50 overflow-hidden"
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-10 h-10 rounded-lg ${metric.color} flex items-center justify-center shadow-md`}>
-                      <Icon name={metric.icon} className="text-white" size={18} />
+                <CardHeader className="pb-3 pt-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-9 h-9 rounded-xl ${metric.color} flex items-center justify-center shadow-sm flex-shrink-0`}>
+                      <Icon name={metric.icon} className="text-white" size={16} />
                     </div>
-                    <div className="ml-auto text-right">
-                      <Badge variant="outline" className="font-semibold">
-                        {metric.value}/{metric.total}
-                      </Badge>
-                      {metric.trend !== '0' && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <Icon name="TrendingUp" size={10} />
-                          {metric.trend}
-                        </p>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-sm font-medium truncate">{metric.label}</CardTitle>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-lg font-bold">{metric.value}<span className="text-xs text-muted-foreground font-normal">/{metric.total}</span></span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
+                  <div className="flex items-center gap-2">
                     {metric.status === 'excellent' && (
-                      <Badge className="bg-green-500 hover:bg-green-600 text-xs">✓ Отлично</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[11px] font-medium">Отлично</Badge>
                     )}
                     {metric.status === 'good' && (
-                      <Badge variant="outline" className="text-xs border-green-500 text-green-700">Хорошо</Badge>
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[11px] font-medium">Хорошо</Badge>
                     )}
                     {metric.status === 'warning' && (
-                      <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700">Внимание</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[11px] font-medium">Внимание</Badge>
                     )}
                     {metric.status === 'critical' && (
-                      <Badge className="bg-red-500 hover:bg-red-600 text-xs">! Критично</Badge>
+                      <Badge className="bg-red-100 text-red-700 hover:bg-red-100 text-[11px] font-medium">Критично</Badge>
+                    )}
+                    {metric.trend !== '0' && (
+                      <span className="text-[11px] text-muted-foreground ml-auto">{metric.trend}</span>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
+                <CardContent className="pt-0 pb-4">
+                  <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-1000 ease-out rounded-full ${metric.color} relative`}
+                      className={`h-full transition-all duration-1000 ease-out rounded-full ${metric.color}`}
                       style={{ width: isVisible ? `${percentage}%` : '0%' }}
-                    >
-                      <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
-                    </div>
+                    />
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-muted-foreground">
-                      {percentage === 100 ? 'Выполнено полностью' : `Выполнено ${Math.round(percentage)}%`}
-                    </p>
-                    <p className="text-xs font-medium">
-                      {metric.value} из {metric.total}
-                    </p>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    {percentage === 100 ? 'Выполнено полностью' : `${Math.round(percentage)}% выполнено`}
+                  </p>
                 </CardContent>
               </Card>
             );
           })}
         </div>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+        <Card className="border-border/50 overflow-hidden">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Icon name="Monitor" size={20} className="text-blue-600" />
-                Мониторинг систем АРМ «Орион Про»
-              </CardTitle>
-              <Badge className="bg-blue-500">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Icon name="Monitor" size={16} className="text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm sm:text-base">Мониторинг систем АРМ «Орион Про»</CardTitle>
+                  <CardDescription className="text-xs">Подключенное оборудование и системы</CardDescription>
+                </div>
+              </div>
+              <Badge className="bg-blue-600 hover:bg-blue-600 self-start sm:self-auto rounded-lg">
                 <Icon name="Activity" size={12} className="mr-1" />
                 Активно
               </Badge>
             </div>
-            <CardDescription>Статистика подключенного оборудования и систем</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-stagger">
               {monitoringStats.map((stat, index) => (
                 <div 
                   key={index} 
-                  className="bg-white dark:bg-slate-900 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-left"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="bg-muted/30 rounded-xl p-3 sm:p-4 hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <Icon name={stat.icon} className={stat.color} size={20} />
-                    <Badge variant="outline" className="text-xs">{stat.status}</Badge>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon name={stat.icon} className={stat.color} size={18} />
+                    <Badge variant="outline" className="text-[10px] h-5 rounded-md">{stat.status}</Badge>
                   </div>
-                  <p className="text-2xl font-bold mb-1">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <p className="text-xl sm:text-2xl font-bold mb-0.5">{stat.value}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -718,14 +709,13 @@ export default function AssessmentDashboard({
                     return (
                       <div
                         key={sys.id}
-                        className={`flex items-center gap-4 p-4 rounded-lg border hover:shadow-sm transition-all duration-300 animate-in slide-in-from-right ${isNA ? 'bg-muted/20 opacity-50' : 'bg-white dark:bg-slate-950'}`}
-                        style={{ animationDelay: `${index * 80}ms` }}
+                        className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 rounded-xl border border-border/50 hover:shadow-sm transition-all duration-200 ${isNA ? 'bg-muted/20 opacity-50' : 'bg-card'}`}
                       >
-                        <div className={`w-10 h-10 rounded-lg ${conditionColor} flex items-center justify-center shadow-md flex-shrink-0`}>
-                          <Icon name="Shield" className="text-white" size={18} />
+                        <div className={`w-9 h-9 rounded-lg ${conditionColor} flex items-center justify-center shadow-sm flex-shrink-0`}>
+                          <Icon name="Shield" className="text-white" size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h4 className="font-semibold text-sm">{sys.system_name}</h4>
                             <Badge variant="outline" className={`text-xs ${
                               sys.condition === 'Исправна' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -807,46 +797,49 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-t-4 border-t-orange-500">
+        <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="CalendarClock" size={20} className="text-orange-500" />
-              Предстоящие задачи и сроки
-            </CardTitle>
-            <CardDescription>Контроль выполнения плановых мероприятий</CardDescription>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Icon name="CalendarClock" size={16} className="text-amber-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm sm:text-base">Предстоящие задачи и сроки</CardTitle>
+                <CardDescription className="text-xs">Контроль плановых мероприятий</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {upcomingTasks.map((task, index) => (
               <div
                 key={index}
-                className="group flex items-center justify-between p-4 rounded-lg border-2 border-border hover:border-primary hover:shadow-md transition-all duration-300 cursor-pointer animate-in fade-in slide-in-from-left"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all duration-200"
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-1 h-12 rounded-full ${task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`w-1 h-8 sm:h-10 rounded-full flex-shrink-0 ${task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'}`}></div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
                       <Badge
-                        className={
+                        className={`text-[10px] h-5 ${
                           task.priority === 'high'
-                            ? 'bg-red-500 hover:bg-red-600'
+                            ? 'bg-red-100 text-red-700 hover:bg-red-100'
                             : task.priority === 'medium'
-                            ? 'bg-yellow-500 hover:bg-yellow-600'
-                            : 'bg-green-500 hover:bg-green-600'
-                        }
+                            ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
+                            : 'bg-green-100 text-green-700 hover:bg-green-100'
+                        }`}
                       >
-                        {task.priority === 'high' ? 'Высокий приоритет' : task.priority === 'medium' ? 'Средний приоритет' : 'Низкий приоритет'}
+                        {task.priority === 'high' ? 'Высокий' : task.priority === 'medium' ? 'Средний' : 'Низкий'}
                       </Badge>
                     </div>
-                    <span className="text-sm font-semibold group-hover:text-primary transition-colors">{task.task}</span>
+                    <span className="text-sm font-medium">{task.task}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                    <Icon name="Calendar" size={16} className="text-muted-foreground" />
+                <div className="text-left sm:text-right ml-4 sm:ml-0 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs font-medium mb-0.5">
+                    <Icon name="Calendar" size={12} className="text-muted-foreground" />
                     {new Date(task.dueDate).toLocaleDateString('ru-RU')}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     Осталось {task.daysLeft} дней
                   </p>
                 </div>
@@ -855,155 +848,122 @@ export default function AssessmentDashboard({
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-transparent dark:from-green-950 animate-in fade-in zoom-in" style={{ animationDelay: '100ms' }}>
-            <CardHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-stagger">
+          <Card className="border-border/50 card-hover">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Соблюдается</CardTitle>
-                <Icon name="CheckCircle2" className="text-green-500" size={20} />
+                <CardTitle className="text-xs font-medium text-muted-foreground">Соблюдается</CardTitle>
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Icon name="CheckCircle2" className="text-emerald-600" size={14} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-4xl font-bold text-green-600 mb-1">85%</p>
-                  <p className="text-xs text-muted-foreground">требований ПБ</p>
-                </div>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  <Icon name="TrendingUp" size={12} className="mr-1" />
-                  +3%
-                </Badge>
-              </div>
+              <p className="text-3xl font-bold text-emerald-600">85%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">требований ПБ</p>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-yellow-50 to-transparent dark:from-yellow-950 animate-in fade-in zoom-in" style={{ animationDelay: '200ms' }}>
-            <CardHeader>
+          <Card className="border-border/50 card-hover">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Требует внимания</CardTitle>
-                <Icon name="AlertTriangle" className="text-yellow-500" size={20} />
+                <CardTitle className="text-xs font-medium text-muted-foreground">Требует внимания</CardTitle>
+                <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Icon name="AlertTriangle" className="text-amber-600" size={14} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-4xl font-bold text-yellow-600 mb-1">12%</p>
-                  <p className="text-xs text-muted-foreground">замечаний</p>
-                </div>
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                  <Icon name="TrendingDown" size={12} className="mr-1" />
-                  -2%
-                </Badge>
-              </div>
+              <p className="text-3xl font-bold text-amber-600">12%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">замечаний</p>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-transparent dark:from-red-950 animate-in fade-in zoom-in" style={{ animationDelay: '300ms' }}>
-            <CardHeader>
+          <Card className="border-border/50 card-hover">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Критичные</CardTitle>
-                <Icon name="XCircle" className="text-red-500" size={20} />
+                <CardTitle className="text-xs font-medium text-muted-foreground">Критичные</CardTitle>
+                <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                  <Icon name="XCircle" className="text-red-600" size={14} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-4xl font-bold text-red-600 mb-1">3%</p>
-                  <p className="text-xs text-muted-foreground">нарушений</p>
-                </div>
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  <Icon name="TrendingDown" size={12} className="mr-1" />
-                  -1%
-                </Badge>
-              </div>
+              <p className="text-3xl font-bold text-red-600">3%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">нарушений</p>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-slate-700">
+        <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="TrendingUp" size={20} className="text-blue-500" />
-              Динамика показателей за последний месяц
-            </CardTitle>
-            <CardDescription>Сравнение с предыдущим периодом</CardDescription>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Icon name="TrendingUp" size={16} className="text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm sm:text-base">Динамика за последний месяц</CardTitle>
+                <CardDescription className="text-xs">Сравнение с предыдущим периодом</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-4 bg-muted/30 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Завершено задач</span>
-                  <Badge className="bg-green-500">+15%</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[11px]">+15%</Badge>
                 </div>
-                <p className="text-2xl font-bold">47 из 52</p>
-                <p className="text-xs text-muted-foreground mt-1">В прошлом месяце: 41 из 48</p>
+                <p className="text-2xl font-bold">47 <span className="text-sm font-normal text-muted-foreground">из 52</span></p>
               </div>
-              <div className="p-4 bg-white dark:bg-slate-950 rounded-lg border">
+              <div className="p-4 bg-muted/30 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Среднее время реакции</span>
-                  <Badge className="bg-green-500">-20%</Badge>
+                  <span className="text-sm font-medium">Время реакции</span>
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[11px]">-20%</Badge>
                 </div>
-                <p className="text-2xl font-bold">4.2 мин</p>
-                <p className="text-xs text-muted-foreground mt-1">В прошлом месяце: 5.3 мин</p>
+                <p className="text-2xl font-bold">4.2 <span className="text-sm font-normal text-muted-foreground">мин</span></p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+        <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Icon name="Download" size={20} className="text-blue-600" />
-              Экспорт графиков
-            </CardTitle>
-            <CardDescription>Скачайте графики по отдельности или полный отчёт</CardDescription>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                <Icon name="Download" size={16} className="text-violet-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm sm:text-base">Экспорт графиков</CardTitle>
+                <CardDescription className="text-xs">Скачайте графики или полный отчёт</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportChartAsImage(chart1Ref, 'sostoyanie-sistem-ppz')}
-                className="flex items-center gap-2"
-              >
-                <Icon name="Download" size={16} />
+              <Button variant="outline" size="sm" onClick={() => exportChartAsImage(chart1Ref, 'sostoyanie-sistem-ppz')} className="gap-1.5 rounded-lg text-xs">
+                <Icon name="Download" size={14} />
                 Системы ППЗ
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')}
-                className="flex items-center gap-2"
-              >
-                <Icon name="Download" size={16} />
+              <Button variant="outline" size="sm" onClick={() => exportChartAsImage(chart2Ref, 'sootvetstvie-trebovaniyam')} className="gap-1.5 rounded-lg text-xs">
+                <Icon name="Download" size={14} />
                 Соответствие
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportChartAsImage(chart3Ref, 'aktivnost-polzovatelya')}
-                className="flex items-center gap-2"
-              >
-                <Icon name="Download" size={16} />
+              <Button variant="outline" size="sm" onClick={() => exportChartAsImage(chart3Ref, 'aktivnost-polzovatelya')} className="gap-1.5 rounded-lg text-xs">
+                <Icon name="Download" size={14} />
                 Активность
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => exportChartAsImage(chart4Ref, 'pozhary-10-let')}
-                className="flex items-center gap-2"
-              >
-                <Icon name="Download" size={16} />
+              <Button variant="outline" size="sm" onClick={() => exportChartAsImage(chart4Ref, 'pozhary-10-let')} className="gap-1.5 rounded-lg text-xs">
+                <Icon name="Download" size={14} />
                 Пожары
               </Button>
               <Button 
-                variant="default" 
                 size="sm"
                 onClick={exportAllChartsToPDF}
                 disabled={isExporting}
-                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                className="gap-1.5 rounded-lg text-xs shadow-sm"
               >
-                <Icon name="FileDown" size={16} />
+                <Icon name="FileDown" size={14} />
                 {isExporting ? 'Экспорт...' : 'PDF отчёт'}
               </Button>
             </div>

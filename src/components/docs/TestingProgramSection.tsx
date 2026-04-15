@@ -111,15 +111,15 @@ async function exportPDF(checks: TestCheck[], notes: string) {
   y += 3;
   text('Критерий успешности: ' + PROTOCOL_TEMPLATE.conclusion);
   y += 3;
-  if (notes) { text('Primechaniya: ' + notes); }
+  if (notes) { text('Примечания: ' + notes); }
   y += 8;
-  text('Podpisi:');
+  text('Подписи:');
   y += 5;
-  text('Predsedatel komissii: _________________ / _________________ /');
+  text('Председатель комиссии: _________________ / _________________ /');
   y += 4;
-  text('Chlen komissii: _________________ / _________________ /');
+  text('Член комиссии: _________________ / _________________ /');
   y += 4;
-  text('Chlen komissii: _________________ / _________________ /');
+  text('Член комиссии: _________________ / _________________ /');
 
   doc.save('protokol-ispytaniy-pzi.pdf');
 }

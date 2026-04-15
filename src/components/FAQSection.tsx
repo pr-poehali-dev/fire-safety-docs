@@ -1,10 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 const FAQSection = () => {
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <Tabs defaultValue="instructions" className="w-full">
@@ -292,6 +295,37 @@ const FAQSection = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Icon name="FileText" size={18} />
+                  Документы проекта
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => navigate('/technical-spec')}
+                    variant="outline"
+                    className="justify-start gap-2 h-auto py-3"
+                  >
+                    <Icon name="FileText" size={18} className="text-blue-600" />
+                    <div className="text-left">
+                      <div className="font-medium">Техническое задание</div>
+                      <div className="text-xs text-muted-foreground">Документация проекта</div>
+                    </div>
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/presentation')}
+                    variant="outline"
+                    className="justify-start gap-2 h-auto py-3"
+                  >
+                    <Icon name="Presentation" size={18} className="text-orange-500" />
+                    <div className="text-left">
+                      <div className="font-medium">Презентация</div>
+                      <div className="text-xs text-muted-foreground">Обзор системы</div>
+                    </div>
+                  </Button>
                 </div>
               </div>
 

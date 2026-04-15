@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 const SYSTEM_COMPONENTS = [
   { id: 'C-01', name: 'SPA-приложение (Frontend)', type: 'Клиентский модуль', tech: 'React 18, TypeScript, Vite', deploy: 'CDN poehali.dev', description: 'Веб-интерфейс пользователя. 20 функциональных разделов, ролевая модель доступа.' },
@@ -52,19 +52,19 @@ const PROTECTION_SUBSYSTEMS = [
   { subsystem: 'Резервное копирование', measures: 'Ежедневный бэкап БД, шифрование бэкапов, хранение 90 дней, чек-лист восстановления', status: 'Реализовано' },
 ];
 
-function exportPDF() {
-  const doc = new jsPDF('p', 'mm', 'a4');
+async function exportPDF() {
+  const doc = await createPDF('p');
   const pw = 190;
   let y = 15;
 
-  const title = (t: string, s = 14) => { doc.setFontSize(s); doc.setFont('helvetica', 'bold'); doc.text(t, 10, y); y += s * 0.7; };
+  const title = (t: string, s = 14) => { doc.setFontSize(s); setFontBold(doc); doc.text(t, 10, y); y += s * 0.7; };
   const text = (t: string, s = 9) => {
-    doc.setFontSize(s); doc.setFont('helvetica', 'normal');
+    doc.setFontSize(s); setFontNormal(doc);
     doc.splitTextToSize(t, pw).forEach((l: string) => { if (y > 275) { doc.addPage(); y = 15; } doc.text(l, 10, y); y += s * 0.5; });
   };
   const row = (cols: string[], ws: number[], bold = false) => {
     if (y > 268) { doc.addPage(); y = 15; }
-    doc.setFontSize(6.5); doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(6.5); if (bold) { setFontBold(doc); } else { setFontNormal(doc); }
     let x = 10; let maxH = 4;
     cols.forEach((c, i) => {
       const ls = doc.splitTextToSize(c, ws[i] - 2);
@@ -79,40 +79,40 @@ function exportPDF() {
     y += maxH;
   };
 
-  title('Prilozhenie V. Tehnicheskoe reshenie na infrastrukturu', 14);
+  title('Приложение В. Техническое решение на инфраструктуру', 14);
   y += 2;
-  text('Sistema: Podsistema pozharnoy bezopasnosti (SPB RUSAL)');
-  text('Data: ' + new Date().toLocaleDateString('ru-RU'));
-  text('Versiya: 1.0');
+  text('Система: Подсистема пожарной безопасности (СПБ РУСАЛ)');
+  text('Дата: ' + new Date().toLocaleDateString('ru-RU'));
+  text('Версия: 1.0');
   y += 4;
 
-  title('1. Shema komponentov sistemy', 12);
+  title('1. Схема компонентов системы', 12);
   y += 2;
   const cw = [12, 35, 25, 30, 25, pw - 127];
-  row(['ID', 'Komponent', 'Tip', 'Tehnologiya', 'Razvertyvanie', 'Opisanie'], cw, true);
+  row(['ID', 'Компонент', 'Тип', 'Технология', 'Развертывание', 'Описание'], cw, true);
   SYSTEM_COMPONENTS.forEach(c => row([c.id, c.name, c.type, c.tech, c.deploy, c.description], cw));
   y += 5;
 
-  title('2. Tablica uchetnyh zapisey', 12);
+  title('2. Таблица учётных записей', 12);
   y += 2;
   const aw = [30, 16, 55, 30, 30, pw - 161];
-  row(['Uchetnaya zapis', 'Rol', 'Prava', 'Vladelets', 'Autentifikaciya', 'MFA'], aw, true);
+  row(['Учётная запись', 'Роль', 'Права', 'Владелец', 'Аутентификация', 'МFA'], aw, true);
   ACCOUNTS_TABLE.forEach(a => row([a.account, a.role, a.rights.substring(0, 120), a.owner, a.authMethod, a.mfa], aw));
   y += 5;
 
   if (y > 100) { doc.addPage(); y = 15; }
-  title('3. Matrica informacionnyh potokov', 12);
+  title('3. Матрица информационных потоков', 12);
   y += 2;
   const fw = [12, 28, 28, 22, 10, 40, 22, pw - 162];
-  row(['ID', 'Istochnik', 'Cel', 'Protokol', 'Port', 'Dannye', 'Klass.', 'Napravlenie'], fw, true);
+  row(['ID', 'Источник', 'Цель', 'Протокол', 'Порт', 'Данные', 'Класс.', 'Направление'], fw, true);
   INFO_FLOWS.forEach(f => row([f.id, f.from, f.to, f.protocol, f.port, f.data, f.classification, f.direction], fw));
   y += 5;
 
   doc.addPage(); y = 15;
-  title('4. Podsistemy zashchity informacii', 12);
+  title('4. Подсистемы защиты информации', 12);
   y += 2;
   const sw = [40, pw - 60, 20];
-  row(['Podsistema', 'Realizovannye mery', 'Status'], sw, true);
+  row(['Подсистема', 'Реализованные меры', 'Статус'], sw, true);
   PROTECTION_SUBSYSTEMS.forEach(p => row([p.subsystem, p.measures, p.status], sw));
 
   doc.save('prilozhenie-v-teh-reshenie.pdf');

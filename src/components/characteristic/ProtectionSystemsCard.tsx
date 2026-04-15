@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const SERVICE_LIFE_YEARS = 10;
@@ -141,29 +141,29 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
 
   const isNotRequired = (condition: string) => condition === 'Не требуется';
 
-  const exportSystemsPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4');
+  const exportSystemsPDF = async () => {
+    const doc = await createPDF('l');
     const pw = 277;
     let y = 15;
 
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ZHURNAL UCHETA SISTEM PROTIVOPOZHARNOJ ZASHCHITY', 10, y);
+    setFontBold(doc);
+    doc.text('ЖУРНАЛ УЧЁТА СИСТЕМ ПРОТИВОПОЖАРНОЙ ЗАЩИТЫ', 10, y);
     y += 7;
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Data formirovaniya: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
+    setFontNormal(doc);
+    doc.text(`Дата формирования: ${new Date().toLocaleDateString('ru-RU')}`, 10, y);
     y += 4;
-    doc.text(`Srok sluzhby sistem: ${SERVICE_LIFE_YEARS} let`, 10, y);
+    doc.text(`Срок службы систем: ${SERVICE_LIFE_YEARS} лет`, 10, y);
     y += 7;
 
-    const cols = ['Sistema', 'Sostoyanie', 'Data vvoda', 'Srok sluzhby', 'Proekt', 'Kompl. ispytaniya', 'Dogovor TO', 'Srok dogovora'];
+    const cols = ['Система', 'Состояние', 'Дата ввода', 'Срок службы', 'Проект', 'Компл. испытания', 'Договор ТО', 'Срок договора'];
     const ws = [55, 28, 24, 28, 35, 35, 40, 32];
 
     const addRow = (cells: string[], bold = false) => {
       if (y > 185) { doc.addPage(); y = 15; }
       doc.setFontSize(7);
-      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      if (bold) { setFontBold(doc); } else { setFontNormal(doc); }
       let x = 10;
       let maxH = 5;
       cells.forEach((c, i) => {
@@ -186,12 +186,12 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
       const contractInfo = getContractStatus(sys.contract_expiry);
       addRow([
         sys.system_name,
-        sys.condition || 'Ne ukazano',
+        sys.condition || 'Не указано',
         sys.commissioning_date || '—',
         lifeInfo ? lifeInfo.text : '—',
         sys.project || '—',
         sys.complex_tests || '—',
-        sys.maintenance_contract || 'Net',
+        sys.maintenance_contract || 'Нет',
         sys.contract_expiry ? `${sys.contract_expiry} (${contractInfo ? contractInfo.text : ''})` : '—',
       ]);
     });
@@ -203,14 +203,14 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
     const contracts = active.filter(s => s.maintenance_contract).length;
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ITOGO:', 10, y); y += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Vsego aktivnyh sistem: ${active.length}`, 10, y); y += 4;
-    doc.text(`Ispravny: ${ok} | Trebuyut remonta: ${repair}`, 10, y); y += 4;
-    doc.text(`S dogovorom TO: ${contracts} iz ${active.length}`, 10, y); y += 8;
+    setFontBold(doc);
+    doc.text('ИТОГО:', 10, y); y += 5;
+    setFontNormal(doc);
+    doc.text(`Всего активных систем: ${active.length}`, 10, y); y += 4;
+    doc.text(`Исправны: ${ok} | Требуют ремонта: ${repair}`, 10, y); y += 4;
+    doc.text(`С договором ТО: ${contracts} из ${active.length}`, 10, y); y += 8;
 
-    doc.text('Podpis otvetstvennogo: _________________ / _________________ /', 10, y);
+    doc.text('Подпись ответственного: _________________ / _________________ /', 10, y);
 
     doc.save(`zhurnal-sistem-pzh-${new Date().toISOString().split('T')[0]}.pdf`);
   };
