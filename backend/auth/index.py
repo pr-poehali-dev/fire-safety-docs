@@ -527,6 +527,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 )
                 conn.commit()
 
+                # Привязка к объекту для ролей responsible / manager / inspector (Этап 2, задача 2.3)
+                assigned_object_id = body.get('assigned_object_id')
+                if assigned_object_id and role_code in ('responsible', 'manager', 'inspector'):
+                    try:
+                        obj_id_int = int(assigned_object_id)
+                        cursor.execute(
+                            f"SELECT id FROM {SCHEMA}.objects WHERE id = %s AND is_active = TRUE",
+                            [obj_id_int]
+                        )
+                        if cursor.fetchone():
+                            cursor.execute(
+                                f"""INSERT INTO {SCHEMA}.object_users (object_id, user_id)
+                                VALUES (%s, %s) ON CONFLICT DO NOTHING""",
+                                [obj_id_int, user_data['id']]
+                            )
+                            conn.commit()
+                    except (ValueError, TypeError):
+                        pass
+
                 log_auth_event(cursor, conn, email, 'register', True, ip, user_data['id'], ua, 'Успешная регистрация')
 
                 user_data['token'] = access_token
@@ -786,6 +805,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return response(200, {'success': True})
 
             elif action == 'create_object':
+                # Создавать объект могут только admin и responsible (Этап 2, задача 2.3).
+                token = headers.get('X-Auth-Token', headers.get('x-auth-token', ''))
+                token_payload = decode_jwt(token) if token else None
+                creator_role = token_payload.get('role') if token_payload else None
+                if creator_role not in ('admin', 'responsible'):
+                    return response(403, {'error': 'Создание объекта доступно администратору или ответственному за ПБ'})
+
                 name = body.get('name', '')
                 if not name:
                     return response(400, {'error': 'Наименование объекта обязательно'})
@@ -857,6 +883,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cursor.execute(f"SELECT id, code, name, description FROM {SCHEMA}.roles ORDER BY id")
                 roles = [dict(row) for row in cursor.fetchall()]
                 return response(200, roles)
+
+            elif action == 'public_objects':
+                # Публичный список объектов для регистрации (Этап 2, задача 2.3).
+                # Возвращает только идентификатор, название и адрес — без чувствительных данных.
+                cursor.execute(
+                    f"""SELECT id, name, address FROM {SCHEMA}.objects
+                    WHERE is_active = TRUE
+                    ORDER BY name ASC"""
+                )
+                public_objects = [dict(row) for row in cursor.fetchall()]
+                return response(200, public_objects)
 
             elif action == 'objects':
                 user_id = params.get('user_id')

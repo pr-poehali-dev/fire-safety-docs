@@ -4,7 +4,7 @@ const AUTH_URL = 'https://functions.poehali.dev/a44dbf08-b20a-4c77-a799-0874d910
 const INACTIVITY_TIMEOUT = 20 * 60 * 1000;
 const TOKEN_REFRESH_MARGIN = 2 * 60 * 1000;
 
-export type RoleCode = 'admin' | 'responsible' | 'manager';
+export type RoleCode = 'admin' | 'responsible' | 'manager' | 'inspector';
 
 export interface User {
   id: number;
@@ -63,6 +63,7 @@ interface RegisterData {
   role: RoleCode;
   phone?: string;
   position?: string;
+  assigned_object_id?: number;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);

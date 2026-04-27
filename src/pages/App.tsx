@@ -5,7 +5,7 @@ import ChatAssistant from '@/components/ChatAssistant';
 import ActivityHistory from '@/components/ActivityHistory';
 import AppSidebar from '@/pages/AppSidebar';
 import AppSectionRenderer from '@/pages/AppSectionRenderer';
-import { ObjectData, allSections, managerSections, adminOnlySections, convertObjectToLocal } from '@/pages/appConstants';
+import { ObjectData, allSections, getSectionsForRole, isReadOnlyRole, convertObjectToLocal } from '@/pages/appConstants';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -34,10 +34,9 @@ const AppPage = () => {
 
   const objectId = currentObject?.id ?? 0;
 
-  const mainSections = (hasRole(['admin', 'responsible'])
-    ? allSections
-    : allSections.filter((s) => managerSections.has(s.id))
-  ).filter((s) => !adminOnlySections.has(s.id) || hasRole(['admin']));
+  const userRole = user?.role_code || 'manager';
+  const allowedSectionIds = getSectionsForRole(userRole);
+  const mainSections = allSections.filter((s) => allowedSectionIds.has(s.id));
 
   const handleSaveObject = async () => {
     if (!currentObject) return;
@@ -97,7 +96,7 @@ const AppPage = () => {
     setObjectData(prev => ({ ...prev, [field]: value }));
   };
 
-  const isReadOnlyCharacteristic = hasRole(['manager']);
+  const isReadOnlyCharacteristic = hasRole(['manager']) || isReadOnlyRole(userRole);
 
   return (
     <>

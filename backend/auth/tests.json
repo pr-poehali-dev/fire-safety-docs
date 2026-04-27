@@ -38,6 +38,28 @@
       "method": "GET",
       "path": "/?action=auth_logs&limit=5",
       "expectedStatus": 200
+    },
+    {
+      "name": "Get public objects (for registration)",
+      "method": "GET",
+      "path": "/?action=public_objects",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Reject create_object without auth token",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "create_object",
+        "name": "Тестовый объект"
+      },
+      "expectedStatus": 403
+    },
+    {
+      "name": "Roles list contains inspector",
+      "method": "GET",
+      "path": "/?action=roles",
+      "expectedStatus": 200
     }
   ]
 }

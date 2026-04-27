@@ -44,16 +44,40 @@ export const allSections = [
   { id: 'faq', icon: 'HelpCircle', title: 'Вопросы и ответы', color: 'bg-purple-500' },
 ];
 
-export const managerSections = new Set([
+/**
+ * Базовый набор разделов для ответственного за ПБ и руководителя.
+ * Согласно ТЗ Этапа 2, задача 2.2:
+ * личный кабинет, характеристика объекта, информирование, документация, монитор,
+ * пожары, журнал, чек-лист, оценка ПБ, исполнительная документация, расчёты,
+ * проверки, декларация, страхование объектов, вопросы и ответы.
+ */
+export const baseUserSections = new Set([
   'profile',
   'characteristic',
+  'informing',
+  'documentation',
+  'monitoring',
+  'fires',
+  'journal',
+  'checklist',
   'assessment',
+  'executive_docs',
+  'calculations',
   'audits',
   'declaration',
   'insurance',
-  'fires',
   'faq',
 ]);
+
+/** Раздел «Информирование» — общий для всех ролей на чтение и запись (задача 2.1). */
+export const sharedSections = new Set([
+  'informing',
+  'faq',
+  'profile',
+]);
+
+/** Совместимость: managerSections используется в старом коде. */
+export const managerSections = baseUserSections;
 
 export const adminOnlySections = new Set([
   'auth_logs',
@@ -65,6 +89,25 @@ export const adminOnlySections = new Set([
   'testing_program',
   'admin_guide',
 ]);
+
+/**
+ * Возвращает список разделов, доступных для роли.
+ * - admin: все разделы
+ * - responsible / manager / inspector: baseUserSections
+ *   (inspector — read-only режим, фильтрация остаётся такой же,
+ *    запрет редактирования реализуется флагом isReadOnly)
+ */
+export function getSectionsForRole(roleCode: string): Set<string> {
+  if (roleCode === 'admin') {
+    return new Set([...baseUserSections, ...adminOnlySections]);
+  }
+  return baseUserSections;
+}
+
+/** Является ли роль read-only (не может редактировать ничего, кроме «Информирования»). */
+export function isReadOnlyRole(roleCode: string): boolean {
+  return roleCode === 'inspector';
+}
 
 export const journalSubsections = [
   {

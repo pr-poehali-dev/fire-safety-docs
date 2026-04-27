@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,23 @@ import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { useAuth, RoleCode } from '@/contexts/AuthContext';
 
+const AUTH_API = 'https://functions.poehali.dev/a44dbf08-b20a-4c77-a799-0874d91052ae';
+
 const roles: { code: RoleCode; name: string; desc: string; icon: string }[] = [
   { code: 'responsible', name: 'Ответственный за ПБ', desc: 'Ведение объектов, проверки, документация', icon: 'Shield' },
-  { code: 'manager', name: 'Руководитель', desc: 'Анализ, контроль, KPI', icon: 'BarChart3' },
+  { code: 'manager', name: 'Руководитель', desc: 'Анализ, контроль, KPI по объекту', icon: 'BarChart3' },
+  { code: 'inspector', name: 'Наблюдатель / Инспектор', desc: 'Просмотр данных назначенного объекта', icon: 'Eye' },
   { code: 'admin', name: 'Администратор', desc: 'Управление системой, поддержка', icon: 'Settings' },
 ];
+
+/** Роли, которым требуется привязка к объекту при регистрации. */
+const ROLES_WITH_OBJECT: RoleCode[] = ['responsible', 'manager', 'inspector'];
+
+interface PublicObject {
+  id: number;
+  name: string;
+  address?: string;
+}
 
 const passwordChecks = [
   { id: 'length', label: 'Минимум 12 символов', test: (p: string) => p.length >= 12 },
@@ -40,6 +52,27 @@ export default function LoginPage() {
   const [captchaQuestion, setCaptchaQuestion] = useState('');
   const [captchaId, setCaptchaId] = useState('');
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+
+  const [availableObjects, setAvailableObjects] = useState<PublicObject[]>([]);
+  const [assignedObjectId, setAssignedObjectId] = useState<string>('');
+  const [objectsLoading, setObjectsLoading] = useState(false);
+
+  const needsObjectSelection = mode === 'register' && ROLES_WITH_OBJECT.includes(role);
+
+  useEffect(() => {
+    if (mode !== 'register') return;
+    if (!needsObjectSelection) return;
+    if (availableObjects.length > 0) return;
+
+    setObjectsLoading(true);
+    fetch(`${AUTH_API}?action=public_objects`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data) => {
+        if (Array.isArray(data)) setAvailableObjects(data);
+      })
+      .catch(() => setAvailableObjects([]))
+      .finally(() => setObjectsLoading(false));
+  }, [mode, needsObjectSelection, availableObjects.length]);
 
   const pwStrength = useMemo(() => {
     const passed = passwordChecks.filter(c => c.test(password));
@@ -113,7 +146,22 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      err = await register({ email, password, full_name: fullName, role, phone, position });
+      if (needsObjectSelection && availableObjects.length > 0 && !assignedObjectId) {
+        setError('Выберите объект, к которому вы будете привязаны');
+        setLoading(false);
+        return;
+      }
+      const regPayload: {
+        email: string;
+        password: string;
+        full_name: string;
+        role: RoleCode;
+        phone: string;
+        position: string;
+        assigned_object_id?: number;
+      } = { email, password, full_name: fullName, role, phone, position };
+      if (assignedObjectId) regPayload.assigned_object_id = parseInt(assignedObjectId, 10);
+      err = await register(regPayload);
     }
 
     if (err) setError(err);
@@ -154,7 +202,7 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-300">Роль *</Label>
-                    <Select value={role} onValueChange={(v) => setRole(v as RoleCode)}>
+                    <Select value={role} onValueChange={(v) => { setRole(v as RoleCode); setAssignedObjectId(''); }}>
                       <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
                         <SelectValue />
                       </SelectTrigger>
@@ -163,13 +211,61 @@ export default function LoginPage() {
                           <SelectItem key={r.code} value={r.code}>
                             <div className="flex items-center gap-2">
                               <Icon name={r.icon} size={16} />
-                              <span className="font-medium">{r.name}</span>
+                              <div>
+                                <span className="font-medium">{r.name}</span>
+                                <p className="text-[11px] text-slate-500 leading-tight">{r.desc}</p>
+                              </div>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {needsObjectSelection && (
+                    <div className="space-y-2 animate-fade-in">
+                      <Label className="text-slate-300">Объект защиты *</Label>
+                      {objectsLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-slate-400 px-3 py-2 bg-slate-700/30 rounded-md">
+                          <Icon name="Loader2" size={14} className="animate-spin" />
+                          Загрузка списка объектов...
+                        </div>
+                      ) : availableObjects.length === 0 ? (
+                        <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-500/10 border border-amber-500/30 rounded-md text-xs text-amber-200">
+                          <Icon name="AlertCircle" size={14} className="mt-0.5 shrink-0" />
+                          <span>
+                            Нет доступных объектов. Обратитесь к администратору — только он может создать новый объект.
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <Select value={assignedObjectId} onValueChange={setAssignedObjectId}>
+                            <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                              <SelectValue placeholder="Выберите объект" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableObjects.map((obj) => (
+                                <SelectItem key={obj.id} value={String(obj.id)}>
+                                  <div className="flex items-center gap-2">
+                                    <Icon name="Building2" size={14} />
+                                    <div>
+                                      <span className="font-medium">{obj.name}</span>
+                                      {obj.address && (
+                                        <p className="text-[11px] text-slate-500 leading-tight">{obj.address}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[11px] text-slate-400 leading-snug">
+                            Вы получите доступ только к выбранному объекту. Для создания нового объекта обратитесь к администратору.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label className="text-slate-300">Телефон</Label>
