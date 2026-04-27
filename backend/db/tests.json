@@ -1,21 +1,35 @@
 {
   "tests": [
     {
-      "name": "Get object characteristics",
+      "name": "Reject request without auth token",
       "method": "GET",
       "path": "/?table=object_characteristics",
-      "expectedStatus": 200
+      "expectedStatus": 401
     },
     {
-      "name": "Create object record",
+      "name": "Reject POST without auth token",
       "method": "POST",
       "path": "/",
       "body": {
         "table": "object_characteristics",
-        "name": "Тестовый объект",
-        "functional_class": "Ф1.1"
+        "name": "X"
       },
-      "expectedStatus": 201
+      "expectedStatus": 401
+    },
+    {
+      "name": "Reject invalid token",
+      "method": "GET",
+      "path": "/?table=object_characteristics",
+      "headers": {
+        "X-Auth-Token": "invalid.token.here"
+      },
+      "expectedStatus": 401
+    },
+    {
+      "name": "Handle CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
     }
   ]
 }

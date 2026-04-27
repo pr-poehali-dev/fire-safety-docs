@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface JournalSectionProps {
   sectionId: string;
@@ -51,8 +50,8 @@ export default function JournalSection({
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
       const [entriesRes, headersRes] = await Promise.all([
-        fetch(`${API_URL}?table=journal_entries${objFilter}`),
-        fetch(`${API_URL}?table=journal_headers${objFilter}`),
+        authedFetch(`${DB_API}?table=journal_entries${objFilter}`),
+        authedFetch(`${DB_API}?table=journal_headers${objFilter}`),
       ]);
       const allEntries = await entriesRes.json();
       const allHeaders = await headersRes.json();
@@ -98,13 +97,13 @@ export default function JournalSection({
       };
       if (objectId) payload.object_id = objectId;
       if (dbHeaderId) {
-        await fetch(API_URL, {
+        await authedFetch(DB_API, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, id: dbHeaderId }),
         });
       } else {
-        const res = await fetch(API_URL, {
+        const res = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -136,7 +135,7 @@ export default function JournalSection({
         entry_data: JSON.stringify(newEntry),
       };
       if (objectId) entryPayload.object_id = objectId;
-      const res = await fetch(API_URL, {
+      const res = await authedFetch(DB_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entryPayload),
@@ -158,7 +157,7 @@ export default function JournalSection({
 
   const handleDeleteEntry = async (id: number) => {
     try {
-      await fetch(`${API_URL}?table=journal_entries&id=${id}`, { method: 'DELETE' });
+      await authedFetch(`${DB_API}?table=journal_entries&id=${id}`, { method: 'DELETE' });
       setEntries(prev => prev.filter(e => e.id !== id));
     } catch (error) {
       console.error('Error deleting entry:', error);

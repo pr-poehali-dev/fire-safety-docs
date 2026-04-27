@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface ObjectData {
   name: string;
@@ -95,7 +94,7 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
     setIsLoading(true);
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const res = await fetch(`${API_URL}?table=declarations${objFilter}`);
+      const res = await authedFetch(`${DB_API}?table=declarations${objFilter}`);
       const rows = await res.json();
       if (rows.length > 0) {
         const row = rows[0] as Record<string, string | number>;
@@ -135,13 +134,13 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
 
       if (dbId) {
         payload.id = dbId;
-        await fetch(API_URL, {
+        await authedFetch(DB_API, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
-        const res = await fetch(API_URL, {
+        const res = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

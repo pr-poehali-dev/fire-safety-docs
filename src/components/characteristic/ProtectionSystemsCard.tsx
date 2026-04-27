@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
+import { authedFetch, DB_API } from '@/lib/api';
 
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const SERVICE_LIFE_YEARS = 10;
 const conditionOptions = ['Исправна', 'Требует ремонта', 'Неисправна', 'На обслуживании', 'Не установлена', 'Не требуется'];
 const HIDDEN_SYSTEM_KEYS = ['fire_water'];
@@ -78,7 +78,7 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
     setLoadingSystems(true);
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const res = await fetch(`${API_URL}?table=protection_systems${objFilter}`);
+      const res = await authedFetch(`${DB_API}?table=protection_systems${objFilter}`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
       setProtectionSystems(
@@ -113,7 +113,7 @@ export default function ProtectionSystemsCard({ objectId, readOnly }: Protection
     setSavingSystems(true);
     try {
       for (const sys of protectionSystems) {
-        await fetch(API_URL, {
+        await authedFetch(DB_API, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

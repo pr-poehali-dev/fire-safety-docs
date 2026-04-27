@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface Drill {
   date: string;
@@ -15,8 +16,6 @@ interface Drill {
   participants: string;
   documents: File[];
 }
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 export default function DrillsSection({ objectId }: { objectId?: number; fields?: unknown[] }) {
   const [drills, setDrills] = useState<Drill[]>([]);
@@ -28,7 +27,7 @@ export default function DrillsSection({ objectId }: { objectId?: number; fields?
   const loadDrills = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=drills${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=drills${objFilter}`);
       const data = await response.json();
       const loadedDrills = data.map((item: any) => ({
         date: item.drill_date,
@@ -64,7 +63,7 @@ export default function DrillsSection({ objectId }: { objectId?: number; fields?
   const handleAddDrill = async () => {
     if (newDrill.date && newDrill.purpose) {
       try {
-        const response = await fetch(API_URL, {
+        const response = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

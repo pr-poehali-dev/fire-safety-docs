@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface Notification {
   id: string;
@@ -68,7 +67,7 @@ export default function NotificationsSection({ objectId }: { objectId?: number }
   const checkDeadlinesAndRisks = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const auditsResponse = await fetch(`${API_URL}?table=audits${objFilter}`);
+      const auditsResponse = await authedFetch(`${DB_API}?table=audits${objFilter}`);
       const audits = await auditsResponse.json();
       
       const newNotifications: Notification[] = [];

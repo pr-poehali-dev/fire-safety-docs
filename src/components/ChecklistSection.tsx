@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface ChecklistItem {
   id: string;
@@ -43,8 +44,6 @@ const checklistTemplates = [
   { id: 'target', name: 'Целевая проверка', description: 'Проверка по конкретной теме', icon: 'Target' },
 ];
 
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
-
 export default function ChecklistSection({ objectId }: { objectId?: number }) {
   const [activeTab, setActiveTab] = useState('current');
   const [checklistData, setChecklistData] = useState<Record<string, ChecklistItem>>(
@@ -64,7 +63,7 @@ export default function ChecklistSection({ objectId }: { objectId?: number }) {
   const loadChecklistData = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=checklist_items${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=checklist_items${objFilter}`);
       const data = await response.json();
       if (data.length > 0) {
         const loadedData: Record<string, ChecklistItem> = {};
@@ -94,7 +93,7 @@ export default function ChecklistSection({ objectId }: { objectId?: number }) {
     }));
     
     try {
-      await fetch(API_URL, {
+      await authedFetch(DB_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -125,7 +124,7 @@ export default function ChecklistSection({ objectId }: { objectId?: number }) {
     try {
       for (const [itemId, itemData] of Object.entries(checklistData)) {
         if (itemData.status !== 'not_set') {
-          await fetch(API_URL, {
+          await authedFetch(DB_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

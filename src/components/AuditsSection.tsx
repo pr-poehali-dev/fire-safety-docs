@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface Audit {
   date: string;
@@ -15,8 +16,6 @@ interface Audit {
   completed: string;
   responsible: string;
 }
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 export default function AuditsSection({ objectId }: { objectId?: number }) {
   const [audits, setAudits] = useState<Audit[]>([]);
@@ -28,7 +27,7 @@ export default function AuditsSection({ objectId }: { objectId?: number }) {
   const loadAudits = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=audits${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=audits${objFilter}`);
       const data = await response.json();
       const loadedAudits = data.map((item: any) => ({
         date: item.audit_date,
@@ -59,7 +58,7 @@ export default function AuditsSection({ objectId }: { objectId?: number }) {
   const handleAddAudit = async () => {
     if (newAudit.date && newAudit.inspector) {
       try {
-        const response = await fetch(API_URL, {
+        const response = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

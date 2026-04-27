@@ -7,8 +7,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import html2canvas from 'html2canvas';
 import { createPDF } from '@/lib/pdfUtils';
+import { authedFetch, DB_API } from '@/lib/api';
 
-const SYSTEMS_API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const HIDDEN_SYSTEM_KEYS = ['fire_water'];
 
 interface RealProtectionSystem {
@@ -53,7 +53,7 @@ export default function AssessmentDashboard({
   const fetchRealSystems = useCallback(async () => {
     setLoadingSystems(true);
     try {
-      const res = await fetch(`${SYSTEMS_API_URL}?table=protection_systems`);
+      const res = await authedFetch(`${DB_API}?table=protection_systems`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
       const unique = new Map<string, RealProtectionSystem>();
@@ -90,7 +90,7 @@ export default function AssessmentDashboard({
     const results = await Promise.all(
       tables.map(async (table) => {
         try {
-          const res = await fetch(`${SYSTEMS_API_URL}?table=${table}${objFilter}`);
+          const res = await authedFetch(`${DB_API}?table=${table}${objFilter}`);
           if (!res.ok) return { table, count: 0 };
           const data = await res.json();
           return { table, count: Array.isArray(data) ? data.length : 0 };

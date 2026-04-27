@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { authedFetch, DB_API } from '@/lib/api';
 
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const categoryOptions = ['А', 'Б', 'В1', 'В2', 'В3', 'В4', 'Г', 'Д'];
 
 interface RoomCategory {
@@ -37,7 +37,7 @@ export default function RoomsCategoriesCard({ objectId, readOnly }: RoomsCategor
     setLoadingRooms(true);
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const res = await fetch(`${API_URL}?table=rooms_categories${objFilter}`);
+      const res = await authedFetch(`${DB_API}?table=rooms_categories${objFilter}`);
       if (!res.ok) throw new Error('fetch error');
       const data = await res.json();
       setRooms(data.map((row: Record<string, unknown>) => ({
@@ -83,7 +83,7 @@ export default function RoomsCategoriesCard({ objectId, readOnly }: RoomsCategor
     const room = rooms.find(r => r.id === id);
     if (room && !room._isNew) {
       try {
-        await fetch(`${API_URL}?table=rooms_categories&id=${id}`, { method: 'DELETE' });
+        await authedFetch(`${DB_API}?table=rooms_categories&id=${id}`, { method: 'DELETE' });
       } catch (e) {
         console.error('Error deleting room:', e);
       }
@@ -107,13 +107,13 @@ export default function RoomsCategoriesCard({ objectId, readOnly }: RoomsCategor
         if (objectId) payload.object_id = objectId;
 
         if (room._isNew) {
-          await fetch(API_URL, {
+          await authedFetch(DB_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
         } else {
-          await fetch(API_URL, {
+          await authedFetch(DB_API, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...payload, id: room.id }),

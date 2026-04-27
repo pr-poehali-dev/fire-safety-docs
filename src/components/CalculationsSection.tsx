@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface RoomCalculation {
   name: string;
@@ -15,8 +16,6 @@ interface RoomCalculation {
   specific_load: string;
   electrical: string;
 }
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 export default function CalculationsSection({ objectId }: { objectId?: number }) {
   const [rooms, setRooms] = useState<RoomCalculation[]>([]);
@@ -28,7 +27,7 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
   const loadRooms = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=fire_hazard_calculations${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=fire_hazard_calculations${objFilter}`);
       const data = await response.json();
       const loadedRooms = data.map((item: any) => ({
         name: item.room_name || '',
@@ -59,7 +58,7 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
   const handleAddRoom = async () => {
     if (newRoom.name && newRoom.area) {
       try {
-        const response = await fetch(API_URL, {
+        const response = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

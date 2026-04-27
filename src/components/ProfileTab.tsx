@@ -5,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect, useCallback } from 'react';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface ProfileData {
   fullName: string;
@@ -50,8 +49,8 @@ export default function ProfileTab() {
     setIsLoading(true);
     try {
       const [profileRes, certsRes] = await Promise.all([
-        fetch(`${API_URL}?table=user_profile`),
-        fetch(`${API_URL}?table=certificates`),
+        authedFetch(`${DB_API}?table=user_profile`),
+        authedFetch(`${DB_API}?table=certificates`),
       ]);
       const profiles = await profileRes.json();
       const certs = await certsRes.json();
@@ -112,13 +111,13 @@ export default function ProfileTab() {
       };
 
       if (dbProfileId) {
-        await fetch(API_URL, {
+        await authedFetch(DB_API, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, id: dbProfileId }),
         });
       } else {
-        const res = await fetch(API_URL, {
+        const res = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -148,7 +147,7 @@ export default function ProfileTab() {
   const handleAddCertificate = async () => {
     if (!newCert.institution && !newCert.certificateNumber) return;
     try {
-      const res = await fetch(API_URL, {
+      const res = await authedFetch(DB_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,7 +170,7 @@ export default function ProfileTab() {
 
   const handleDeleteCertificate = async (id: number) => {
     try {
-      await fetch(`${API_URL}?table=certificates&id=${id}`, { method: 'DELETE' });
+      await authedFetch(`${DB_API}?table=certificates&id=${id}`, { method: 'DELETE' });
       setCertificates(prev => prev.filter(c => c.id !== id));
     } catch (error) {
       console.error('Error deleting certificate:', error);

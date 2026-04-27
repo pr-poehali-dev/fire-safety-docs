@@ -5,14 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface ExecutiveDoc {
   name: string;
   date: string;
   file?: File;
 }
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 export default function ExecutiveDocsSection({ objectId }: { objectId?: number }) {
   const [docs, setDocs] = useState<ExecutiveDoc[]>([]);
@@ -24,7 +23,7 @@ export default function ExecutiveDocsSection({ objectId }: { objectId?: number }
   const loadDocs = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=executive_documents${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=executive_documents${objFilter}`);
       const data = await response.json();
       const loadedDocs = data.map((item: any) => ({
         name: item.document_name || '',
@@ -48,7 +47,7 @@ export default function ExecutiveDocsSection({ objectId }: { objectId?: number }
   const handleAddDoc = async () => {
     if (newDoc.name && newDoc.date) {
       try {
-        const response = await fetch(API_URL, {
+        const response = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

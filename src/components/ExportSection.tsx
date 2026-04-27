@@ -5,8 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface ExportSection {
   id: string;
@@ -74,7 +73,7 @@ export default function ExportSection({ objectId }: { objectId?: number }) {
         if (!section) continue;
 
         const objFilter = objectId ? `&object_id=${objectId}` : '';
-        const response = await fetch(`${API_URL}?table=${section.table}${objFilter}`);
+        const response = await authedFetch(`${DB_API}?table=${section.table}${objFilter}`);
         const data = await response.json();
 
         if (data.length > 0) {

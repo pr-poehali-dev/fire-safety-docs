@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { authedFetch, DB_API } from '@/lib/api';
 
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 const HIDDEN_SYSTEM_KEYS = ['fire_water'];
 
 const JOURNAL_SECTIONS = [
@@ -47,7 +47,7 @@ export default function ObjectSummaryCards({ objectId }: ObjectSummaryCardsProps
       const objFilter = objectId ? `&object_id=${objectId}` : '';
       const requests = JOURNAL_SECTIONS.map(async (table) => {
         try {
-          const res = await fetch(`${API_URL}?table=${table}${objFilter}`);
+          const res = await authedFetch(`${DB_API}?table=${table}${objFilter}`);
           if (!res.ok) return { table, count: 0 };
           const data = await res.json();
           return { table, count: Array.isArray(data) ? data.length : 0 };
@@ -56,7 +56,7 @@ export default function ObjectSummaryCards({ objectId }: ObjectSummaryCardsProps
         }
       });
 
-      const sysRes = await fetch(`${API_URL}?table=protection_systems${objFilter}`);
+      const sysRes = await authedFetch(`${DB_API}?table=protection_systems${objFilter}`);
       const sysData = sysRes.ok ? await sysRes.json() : [];
 
       const results = await Promise.all(requests);

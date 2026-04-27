@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { authedFetch, DB_API } from '@/lib/api';
 
 interface Insurance {
   policyNumber: string;
@@ -12,8 +13,6 @@ interface Insurance {
   insured: string;
   amount: string;
 }
-
-const API_URL = 'https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188';
 
 export default function InsuranceSection({ objectId }: { objectId?: number }) {
   const [insurances, setInsurances] = useState<Insurance[]>([]);
@@ -25,7 +24,7 @@ export default function InsuranceSection({ objectId }: { objectId?: number }) {
   const loadInsurances = async () => {
     try {
       const objFilter = objectId ? `&object_id=${objectId}` : '';
-      const response = await fetch(`${API_URL}?table=insurance_policies${objFilter}`);
+      const response = await authedFetch(`${DB_API}?table=insurance_policies${objFilter}`);
       const data = await response.json();
       const loadedInsurances = data.map((item: any) => ({
         policyNumber: item.policy_number || '',
@@ -52,7 +51,7 @@ export default function InsuranceSection({ objectId }: { objectId?: number }) {
   const handleAddInsurance = async () => {
     if (newInsurance.policyNumber && newInsurance.organization) {
       try {
-        const response = await fetch(API_URL, {
+        const response = await authedFetch(DB_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
