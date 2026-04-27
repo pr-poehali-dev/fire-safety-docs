@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import ChatAssistant from '@/components/ChatAssistant';
 import ActivityHistory from '@/components/ActivityHistory';
+import AlertsWidget from '@/components/AlertsWidget';
 import AppSidebar from '@/pages/AppSidebar';
 import AppSectionRenderer from '@/pages/AppSectionRenderer';
 import { ObjectData, allSections, getSectionsForRole, isReadOnlyRole, convertObjectToLocal } from '@/pages/appConstants';
@@ -115,6 +116,15 @@ const AppPage = () => {
 
           <div className="lg:ml-72 flex-1 pt-16 lg:pt-0 min-w-0">
             <div className="p-3 sm:p-5 lg:p-8 max-w-[1400px] mx-auto">
+              {objectId > 0 && (
+                <div className="flex justify-end mb-3">
+                  <AlertsWidget
+                    objectId={objectId}
+                    objectName={currentObject?.name}
+                    onNavigate={(s) => setActiveSection(s)}
+                  />
+                </div>
+              )}
               <Card className="shadow-sm border-border/50 overflow-hidden">
                 <CardContent className="p-3 sm:p-5 lg:p-8">
                   <div className="animate-fade-in">

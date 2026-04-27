@@ -7,6 +7,7 @@ import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { authedFetch, DB_API } from '@/lib/api';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 interface Audit {
   date: string;
@@ -93,17 +94,82 @@ export default function AuditsSection({ objectId }: { objectId?: number }) {
     }
   };
 
+  const handleExportPDF = async () => {
+    const doc = await createPDF('l');
+    const pageWidth = 297;
+    let y = 15;
+
+    setFontBold(doc);
+    doc.setFontSize(14);
+    doc.text('РЕЕСТР ПРОВЕРОК (АУДИТОВ) ОБЪЕКТА', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text(`Дата формирования: ${new Date().toLocaleDateString('ru-RU')}`, pageWidth / 2, y, { align: 'center' });
+    y += 4;
+    doc.text(`Всего проверок: ${audits.length}`, pageWidth / 2, y, { align: 'center' });
+    y += 8;
+
+    const headers = ['№', 'Дата', 'Кем проведена', 'Нарушений', 'Срок устранения', 'Устранено'];
+    const widths = [10, 25, 90, 30, 50, 30];
+
+    const drawRow = (cells: string[], bold = false) => {
+      if (y > 185) { doc.addPage(); y = 15; }
+      if (bold) setFontBold(doc); else setFontNormal(doc);
+      doc.setFontSize(8);
+      let x = 10;
+      let maxH = 5;
+      const wrapped = cells.map((c, i) => {
+        const lines = doc.splitTextToSize(c || '—', widths[i] - 2);
+        maxH = Math.max(maxH, lines.length * 3.5 + 1);
+        return lines;
+      });
+      wrapped.forEach((lines, i) => {
+        doc.rect(x, y - 3.5, widths[i], maxH);
+        lines.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3.5));
+        x += widths[i];
+      });
+      y += maxH;
+    };
+
+    drawRow(headers, true);
+    audits.forEach((a, i) => {
+      drawRow([
+        String(i + 1),
+        a.date ? new Date(a.date).toLocaleDateString('ru-RU') : '',
+        a.inspector,
+        a.violations || '0',
+        a.deadline ? new Date(a.deadline).toLocaleDateString('ru-RU') : '',
+        a.completed || '0',
+      ]);
+    });
+
+    y += 8;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text('Подпись ответственного: _________________ /_________________ /', 10, y);
+    doc.save(`проверки-аудиты-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded bg-blue-500 flex items-center justify-center">
-            <Icon name="Search" className="text-white" size={24} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded bg-blue-500 flex items-center justify-center">
+              <Icon name="Search" className="text-white" size={24} />
+            </div>
+            <div>
+              <CardTitle>Проверки (аудиты) объекта</CardTitle>
+              <CardDescription>Учет проверок и устранение выявленных нарушений</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle>Проверки (аудиты) объекта</CardTitle>
-            <CardDescription>Учет проверок и устранение выявленных нарушений</CardDescription>
-          </div>
+          {audits.length > 0 && (
+            <Button onClick={handleExportPDF} variant="outline" size="sm" className="gap-1.5 rounded-lg">
+              <Icon name="Download" size={14} />
+              Экспорт PDF
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">

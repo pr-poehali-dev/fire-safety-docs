@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
+import { SECTION_PERIODICITY, calculateNextDueDate, daysBetween, SECTION_LABELS } from '@/lib/periodicity';
 import { authedFetch, DB_API } from '@/lib/api';
 
 interface JournalSectionProps {
@@ -266,6 +267,10 @@ export default function JournalSection({
         </div>
       </div>
 
+      {SECTION_PERIODICITY[sectionId] && (
+        <PeriodicityBanner sectionId={sectionId} entries={entries} />
+      )}
+
       {headerFields && headerFields.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 p-3 sm:p-4 bg-muted/30 rounded-xl border border-border/50">
           {headerFields.map((field) => (
@@ -378,6 +383,92 @@ export default function JournalSection({
           Добавить запись
         </Button>
       )}
+    </div>
+  );
+}
+
+interface PeriodicityBannerProps {
+  sectionId: string;
+  entries: JournalEntry[];
+}
+
+function PeriodicityBanner({ sectionId, entries }: PeriodicityBannerProps) {
+  const periodicityDays = SECTION_PERIODICITY[sectionId];
+  const sectionLabel = SECTION_LABELS[sectionId] || sectionId;
+
+  // Ищем самую свежую дату в записях (work_date / inspection_date / maintenance_date)
+  let latest: Date | null = null;
+  entries.forEach((e) => {
+    const data = e.entry_data || {};
+    const dateStr = data.work_date || data.inspection_date || data.maintenance_date;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime()) && (!latest || d > latest)) latest = d;
+    }
+  });
+
+  const nextDue = calculateNextDueDate(latest, periodicityDays);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let statusColor = 'bg-blue-50 border-blue-200 text-blue-700';
+  let iconName = 'CalendarClock';
+  let iconColor = 'text-blue-600';
+  let statusText = '';
+
+  if (!latest) {
+    statusColor = 'bg-amber-50 border-amber-200 text-amber-700';
+    iconName = 'AlertCircle';
+    iconColor = 'text-amber-600';
+    statusText = 'Записей пока нет — добавьте первую отметку';
+  } else if (nextDue) {
+    const daysLeft = daysBetween(today, nextDue);
+    if (daysLeft < 0) {
+      statusColor = 'bg-red-50 border-red-200 text-red-700';
+      iconName = 'AlertOctagon';
+      iconColor = 'text-red-600';
+      statusText = `Просрочено на ${Math.abs(daysLeft)} дн. Срок был ${nextDue.toLocaleDateString('ru-RU')}`;
+    } else if (daysLeft <= 14) {
+      statusColor = 'bg-amber-50 border-amber-200 text-amber-700';
+      iconName = 'AlertTriangle';
+      iconColor = 'text-amber-600';
+      statusText = `Скоро срок: через ${daysLeft} дн. (${nextDue.toLocaleDateString('ru-RU')})`;
+    } else {
+      statusText = `Следующая проверка: ${nextDue.toLocaleDateString('ru-RU')} (через ${daysLeft} дн.)`;
+    }
+  }
+
+  const periodLabel = periodicityDays >= 365 * 5
+    ? '1 раз в 5 лет'
+    : periodicityDays >= 365
+    ? '1 раз в год'
+    : periodicityDays >= 180
+    ? '2 раза в год'
+    : periodicityDays >= 90
+    ? '1 раз в квартал'
+    : '1 раз в месяц';
+
+  return (
+    <div className={`p-3 rounded-xl border ${statusColor} flex items-start gap-3`}>
+      <div className={`w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center flex-shrink-0 ${iconColor}`}>
+        <Icon name={iconName} size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+          <span className="text-xs font-semibold uppercase tracking-wide opacity-80">
+            {sectionLabel}
+          </span>
+          <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-white/60">
+            Периодичность: {periodLabel}
+          </Badge>
+        </div>
+        <p className="text-sm font-medium leading-snug">{statusText}</p>
+        {latest && (
+          <p className="text-[11px] opacity-70 mt-0.5">
+            Последняя запись: {(latest as Date).toLocaleDateString('ru-RU')}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

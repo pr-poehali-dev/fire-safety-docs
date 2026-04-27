@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { authedFetch, DB_API } from '@/lib/api';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 interface ObjectData {
   name: string;
@@ -155,9 +156,98 @@ export default function DeclarationSection({ objectData, objectId }: Declaration
     }
   };
 
-  const handleGenerateDeclaration = () => {
-    handleSave();
-    alert('Декларация сохранена и сформирована! (экспорт в PDF в разработке)');
+  const handleGenerateDeclaration = async () => {
+    await handleSave();
+    const doc = await createPDF('p');
+    let y = 18;
+    const pageWidth = 210;
+    const margin = 15;
+    const maxWidth = pageWidth - margin * 2;
+
+    setFontBold(doc);
+    doc.setFontSize(15);
+    doc.text('ДЕКЛАРАЦИЯ ПОЖАРНОЙ БЕЗОПАСНОСТИ', pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text(`Сформирована: ${new Date().toLocaleDateString('ru-RU')}`, pageWidth / 2, y, { align: 'center' });
+    y += 10;
+
+    const sections: { title: string; rows: [string, string][] }[] = [
+      {
+        title: 'I. Сведения о собственнике',
+        rows: [
+          ['Наименование', declarationData.owner || '—'],
+          ['ОГРН', declarationData.ogrn || '—'],
+          ['ИНН', declarationData.inn || '—'],
+          ['Адрес', declarationData.location || '—'],
+          ['Email', declarationData.postalEmail || '—'],
+          ['Телефон', declarationData.phone || '—'],
+        ],
+      },
+      {
+        title: 'II. Характеристика объекта',
+        rows: [
+          ['Дата ввода в эксплуатацию', declarationData.commissioning || '—'],
+          ['Степень огнестойкости', declarationData.fireResistance || '—'],
+          ['Класс конструктивной пож. опасности', declarationData.constructionClass || '—'],
+          ['Класс функциональной пож. опасности', declarationData.functionalClass || '—'],
+          ['Высота здания (м)', declarationData.buildingHeight || '—'],
+          ['Площадь этажа (м²)', declarationData.floorArea || '—'],
+          ['Строительный объём (м³)', declarationData.buildingVolume || '—'],
+          ['Количество этажей', declarationData.floors || '—'],
+          ['Категория наружных установок', declarationData.categoryOutdoor || '—'],
+        ],
+      },
+      {
+        title: 'III. Системы противопожарной защиты',
+        rows: [
+          ['Перечень систем', declarationData.protectionSystems || '—'],
+        ],
+      },
+    ];
+
+    sections.forEach((section) => {
+      if (y > 260) {
+        doc.addPage();
+        y = 18;
+      }
+      setFontBold(doc);
+      doc.setFontSize(11);
+      doc.text(section.title, margin, y);
+      y += 6;
+      setFontNormal(doc);
+      doc.setFontSize(9);
+      section.rows.forEach(([label, value]) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 18;
+        }
+        const labelLines = doc.splitTextToSize(label + ':', 75);
+        const valueLines = doc.splitTextToSize(value, maxWidth - 80);
+        const rowHeight = Math.max(labelLines.length, valueLines.length) * 4.5 + 1.5;
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y - 3, pageWidth - margin, y - 3);
+        doc.text(labelLines, margin + 1, y);
+        doc.text(valueLines, margin + 80, y);
+        y += rowHeight;
+      });
+      y += 4;
+    });
+
+    if (y > 260) { doc.addPage(); y = 18; }
+    y += 8;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text('Декларация составлена в соответствии с требованиями ст. 64 ФЗ-123 «Технический', margin, y);
+    y += 4;
+    doc.text('регламент о требованиях пожарной безопасности».', margin, y);
+    y += 12;
+    doc.text('Подпись ответственного: _________________ /_________________ /', margin, y);
+    y += 7;
+    doc.text(`Дата: ${new Date().toLocaleDateString('ru-RU')}`, margin, y);
+
+    doc.save(`деклaрация-ПБ-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (isLoading) {

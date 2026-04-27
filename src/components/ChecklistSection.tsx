@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { authedFetch, DB_API } from '@/lib/api';
+import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
 
 interface ChecklistItem {
   id: string;
@@ -153,18 +154,85 @@ export default function ChecklistSection({ objectId }: { objectId?: number }) {
   const completedCount = Object.values(checklistData).filter((item) => item.status === 'yes').length;
   const totalCount = checklistItems.length;
   const completionPercentage = (completedCount / totalCount) * 100;
+  const failedCount = Object.values(checklistData).filter((item) => item.status === 'no').length;
+  const notSetCount = Object.values(checklistData).filter((item) => item.status === 'not_set').length;
+
+  const handleExportPDF = async () => {
+    const doc = await createPDF('p');
+    const pageWidth = 210;
+    const margin = 12;
+    let y = 18;
+
+    setFontBold(doc);
+    doc.setFontSize(13);
+    doc.text('ЧЕК-ЛИСТ САМОПРОВЕРКИ ПОЖАРНОЙ БЕЗОПАСНОСТИ', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text(`Дата формирования: ${new Date().toLocaleDateString('ru-RU')}`, pageWidth / 2, y, { align: 'center' });
+    y += 5;
+    setFontBold(doc);
+    doc.text(`Итого: ${completedCount} выполнено / ${failedCount} не выполнено / ${notSetCount} не отмечено из ${totalCount}`, pageWidth / 2, y, { align: 'center' });
+    y += 5;
+    doc.text(`Прогресс: ${Math.round(completionPercentage)}%`, pageWidth / 2, y, { align: 'center' });
+    y += 8;
+
+    const drawRow = (cells: string[], bold = false, statusColor?: 'yes' | 'no' | 'not_set') => {
+      if (y > 275) { doc.addPage(); y = 18; }
+      if (bold) setFontBold(doc); else setFontNormal(doc);
+      doc.setFontSize(8);
+      const widths = [10, 145, 30];
+      let x = margin;
+      const wrapped = cells.map((c, i) => doc.splitTextToSize(c || '—', widths[i] - 2));
+      const maxH = Math.max(...wrapped.map((l) => l.length)) * 3.5 + 1.5;
+
+      // Цвет фона статуса
+      if (statusColor) {
+        if (statusColor === 'yes') doc.setFillColor(220, 252, 231);
+        else if (statusColor === 'no') doc.setFillColor(254, 226, 226);
+        else doc.setFillColor(241, 245, 249);
+        doc.rect(margin + widths[0] + widths[1], y - 3.5, widths[2], maxH, 'F');
+      }
+
+      wrapped.forEach((lines, i) => {
+        doc.rect(x, y - 3.5, widths[i], maxH);
+        lines.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3.5));
+        x += widths[i];
+      });
+      y += maxH;
+    };
+
+    drawRow(['№', 'Пункт проверки', 'Статус'], true);
+    checklistItems.forEach((item) => {
+      const data = checklistData[item.id];
+      const status = data?.status === 'yes' ? 'Выполнено' : data?.status === 'no' ? 'Не выполнено' : 'Не отмечено';
+      drawRow([item.id, item.text, status], false, data?.status);
+    });
+
+    y += 8;
+    setFontNormal(doc);
+    doc.setFontSize(9);
+    doc.text('Подпись ответственного: _________________ /_________________ /', margin, y);
+    doc.save(`чек-лист-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded bg-orange-500 flex items-center justify-center">
-            <Icon name="CheckSquare" className="text-white" size={24} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded bg-orange-500 flex items-center justify-center">
+              <Icon name="CheckSquare" className="text-white" size={24} />
+            </div>
+            <div className="flex-1">
+              <CardTitle>Чек-лист самопроверки состояния пожарной безопасности рабочего места</CardTitle>
+              <CardDescription>Проверка соответствия требованиям ПБ</CardDescription>
+            </div>
           </div>
-          <div className="flex-1">
-            <CardTitle>Чек-лист самопроверки состояния пожарной безопасности рабочего места</CardTitle>
-            <CardDescription>Проверка соответствия требованиям ПБ</CardDescription>
-          </div>
+          <Button onClick={handleExportPDF} variant="outline" size="sm" className="gap-1.5 rounded-lg">
+            <Icon name="Download" size={14} />
+            Экспорт PDF
+          </Button>
         </div>
         <div className="mt-4 p-3 bg-muted/30 rounded">
           <div className="flex items-center justify-between mb-2">
