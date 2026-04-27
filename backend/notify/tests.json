@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Reject GET without token",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "Reject POST without token",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "send_test",
+        "to": "test@example.com"
+      },
+      "expectedStatus": 401
+    },
+    {
+      "name": "Reject invalid token",
+      "method": "POST",
+      "path": "/",
+      "headers": {
+        "X-Auth-Token": "invalid.token.here"
+      },
+      "body": {
+        "action": "send_test",
+        "to": "test@example.com"
+      },
+      "expectedStatus": 401
+    }
+  ]
+}
