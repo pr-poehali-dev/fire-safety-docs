@@ -59,6 +59,22 @@ export default function LoginPage() {
 
   const needsObjectSelection = mode === 'register' && ROLES_WITH_OBJECT.includes(role);
 
+  // Прогрев бэкенд-функции при загрузке страницы (избегаем cold-start 502 при логине)
+  useEffect(() => {
+    const prewarm = async () => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const res = await fetch(`${AUTH_API}?action=get_roles`, { method: 'GET', cache: 'no-store' });
+          if (res.ok || res.status === 405 || res.status === 401) return;
+          await new Promise((r) => setTimeout(r, 700 * (i + 1)));
+        } catch {
+          await new Promise((r) => setTimeout(r, 700 * (i + 1)));
+        }
+      }
+    };
+    prewarm();
+  }, []);
+
   useEffect(() => {
     if (mode !== 'register') return;
     if (!needsObjectSelection) return;
@@ -367,12 +383,25 @@ export default function LoginPage() {
               {error && (
                 <div className="flex items-start gap-2 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm">
                   <Icon name={lockedUntil ? 'Lock' : 'AlertCircle'} size={16} className="flex-shrink-0 mt-0.5" />
-                  <div>
+                  <div className="flex-1">
                     <p>{error}</p>
                     {attemptsRemaining !== null && attemptsRemaining > 0 && (
                       <p className="text-xs text-red-400/70 mt-1">
                         После {attemptsRemaining} неудачн. попыток аккаунт будет заблокирован на 15 мин
                       </p>
+                    )}
+                    {error.toLowerCase().includes('соединен') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.removeItem('fire_user');
+                          sessionStorage.clear();
+                          window.location.reload();
+                        }}
+                        className="mt-2 text-xs underline text-red-300 hover:text-red-200"
+                      >
+                        Сбросить локальную сессию и перезагрузить
+                      </button>
                     )}
                   </div>
                 </div>

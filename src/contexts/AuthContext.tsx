@@ -180,9 +180,34 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, timeoutMs = 20000): Promise<Response> => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: ctrl.signal });
+        clearTimeout(timer);
+        // Cold-start: 502/503/504 — повторяем
+        if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries) {
+          await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          continue;
+        }
+        return res;
+      } catch (e) {
+        clearTimeout(timer);
+        lastError = e;
+        if (attempt < retries) {
+          await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+
   const login = async (email: string, password: string): Promise<string | null> => {
     try {
-      const res = await fetch(AUTH_URL, {
+      const res = await fetchWithRetry(AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'login', email, password }),
@@ -193,13 +218,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('fire_user', JSON.stringify(data.user));
       return null;
     } catch {
-      return 'Ошибка соединения с сервером';
+      return 'Ошибка соединения с сервером. Проверьте интернет и повторите попытку.';
     }
   };
 
   const register = async (regData: RegisterData): Promise<string | null> => {
     try {
-      const res = await fetch(AUTH_URL, {
+      const res = await fetchWithRetry(AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'register', ...regData }),
@@ -210,7 +235,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('fire_user', JSON.stringify(data.user));
       return null;
     } catch {
-      return 'Ошибка соединения с сервером';
+      return 'Ошибка соединения с сервером. Проверьте интернет и повторите попытку.';
     }
   };
 
