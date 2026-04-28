@@ -1,3 +1,6 @@
 {
-  "notify": "https://functions.poehali.dev/22fb22b6-8e71-4acf-b2a0-d3bf8dadd080"
+  "notify": "https://functions.poehali.dev/22fb22b6-8e71-4acf-b2a0-d3bf8dadd080",
+  "security-log": "https://functions.poehali.dev/d4312df2-af21-4674-9bad-af0c3d4ed3a5",
+  "auth": "https://functions.poehali.dev/a44dbf08-b20a-4c77-a799-0874d91052ae",
+  "db": "https://functions.poehali.dev/6adbead7-91c0-4ddd-852f-dc7fa75a8188"
 }

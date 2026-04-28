@@ -896,6 +896,182 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 public_objects = [dict(row) for row in cursor.fetchall()]
                 return response(200, public_objects)
 
+            elif action == 'pb_dashboard':
+                # Агрегированная статистика ПБ по юр.лицам и объектам.
+                # Доступ: только admin и manager.
+                token = headers.get('X-Auth-Token', headers.get('x-auth-token', ''))
+                token_payload = decode_jwt(token) if token else None
+                user_role = token_payload.get('role') if token_payload else None
+                if user_role not in ('admin', 'manager'):
+                    return response(403, {'error': 'Доступ только для администратора и руководителя'})
+
+                cursor.execute(f"SELECT id, name, address, legal_name, inn_enc, ogrn_enc FROM {SCHEMA}.objects WHERE is_active = TRUE")
+                objects_raw = cursor.fetchall()
+                if not objects_raw:
+                    return response(200, {'legal_entities': [], 'totals': {}})
+
+                obj_ids = [o['id'] for o in objects_raw]
+                ids_csv = ','.join([str(int(i)) for i in obj_ids])
+
+                # Журнальные записи по объектам
+                cursor.execute(
+                    f"SELECT object_id, COUNT(*) AS cnt FROM {SCHEMA}.journal_entries "
+                    f"WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                )
+                journal_counts = {r['object_id']: r['cnt'] for r in cursor.fetchall()}
+
+                # Аудиты (нарушений / устранённых)
+                cursor.execute(
+                    f"SELECT object_id, "
+                    f"COUNT(*) AS audits_total, "
+                    f"COALESCE(SUM(violations_count),0) AS violations, "
+                    f"COALESCE(SUM(completed_count),0) AS completed "
+                    f"FROM {SCHEMA}.audits WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                )
+                audits_stats = {r['object_id']: dict(r) for r in cursor.fetchall()}
+
+                # Чек-листы (доля выполненных пунктов)
+                cursor.execute(
+                    f"SELECT object_id, "
+                    f"COUNT(*) AS total, "
+                    f"SUM(CASE WHEN status = 'yes' THEN 1 ELSE 0 END) AS done, "
+                    f"SUM(CASE WHEN status = 'no' THEN 1 ELSE 0 END) AS failed "
+                    f"FROM {SCHEMA}.checklist_items WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                )
+                checklist_stats = {r['object_id']: dict(r) for r in cursor.fetchall()}
+
+                # Тренировки
+                cursor.execute(
+                    f"SELECT object_id, COUNT(*) AS cnt, MAX(drill_date) AS last_drill "
+                    f"FROM {SCHEMA}.drills WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                )
+                drills_stats = {r['object_id']: dict(r) for r in cursor.fetchall()}
+
+                # Пожарные инциденты
+                try:
+                    cursor.execute(
+                        f"SELECT object_id, COUNT(*) AS cnt FROM {SCHEMA}.fire_hazard_calculations "
+                        f"WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                    )
+                    rooms_stats = {r['object_id']: r['cnt'] for r in cursor.fetchall()}
+                except Exception:
+                    conn.rollback()
+                    rooms_stats = {}
+
+                # Декларации
+                cursor.execute(
+                    f"SELECT object_id, COUNT(*) AS cnt FROM {SCHEMA}.declarations "
+                    f"WHERE object_id IN ({ids_csv}) GROUP BY object_id"
+                )
+                decl_stats = {r['object_id']: r['cnt'] for r in cursor.fetchall()}
+
+                # Группировка по юр.лицам (по расшифрованному ИНН)
+                groups: Dict[str, Dict[str, Any]] = {}
+                for o in objects_raw:
+                    inn = decrypt_field(o['inn_enc']) if o['inn_enc'] else ''
+                    ogrn = decrypt_field(o['ogrn_enc']) if o['ogrn_enc'] else ''
+                    legal_name = o.get('legal_name') or 'Без юр. лица'
+                    key = inn or legal_name or 'unknown'
+
+                    audit = audits_stats.get(o['id'], {})
+                    chk = checklist_stats.get(o['id'], {})
+                    drill = drills_stats.get(o['id'], {})
+
+                    violations = int(audit.get('violations') or 0)
+                    completed = int(audit.get('completed') or 0)
+                    open_violations = max(0, violations - completed)
+                    chk_total = int(chk.get('total') or 0)
+                    chk_done = int(chk.get('done') or 0)
+                    chk_failed = int(chk.get('failed') or 0)
+                    chk_pct = round(chk_done / chk_total * 100) if chk_total else 0
+
+                    # Простая оценка состояния ПБ (0-100)
+                    score = 100
+                    if open_violations > 0:
+                        score -= min(40, open_violations * 5)
+                    if chk_total > 0:
+                        score = round(score * (chk_done / chk_total))
+                    if not drill.get('cnt'):
+                        score = max(0, score - 15)
+                    if not decl_stats.get(o['id']):
+                        score = max(0, score - 10)
+
+                    if score >= 80:
+                        status = 'good'
+                    elif score >= 50:
+                        status = 'warning'
+                    else:
+                        status = 'critical'
+
+                    obj_card = {
+                        'id': o['id'],
+                        'name': o['name'],
+                        'address': o.get('address'),
+                        'journal_entries': int(journal_counts.get(o['id'], 0)),
+                        'audits_total': int(audit.get('audits_total') or 0),
+                        'violations': violations,
+                        'open_violations': open_violations,
+                        'checklist_total': chk_total,
+                        'checklist_done': chk_done,
+                        'checklist_failed': chk_failed,
+                        'checklist_pct': chk_pct,
+                        'drills_count': int(drill.get('cnt') or 0),
+                        'last_drill': str(drill.get('last_drill')) if drill.get('last_drill') else None,
+                        'has_declaration': bool(decl_stats.get(o['id'])),
+                        'rooms_count': int(rooms_stats.get(o['id'], 0)),
+                        'score': score,
+                        'status': status,
+                    }
+
+                    if key not in groups:
+                        groups[key] = {
+                            'inn': inn,
+                            'ogrn': ogrn,
+                            'legal_name': legal_name,
+                            'objects': [],
+                            'avg_score': 0,
+                            'total_violations': 0,
+                            'total_open_violations': 0,
+                            'critical_count': 0,
+                            'warning_count': 0,
+                            'good_count': 0,
+                        }
+                    groups[key]['objects'].append(obj_card)
+                    groups[key]['total_violations'] += violations
+                    groups[key]['total_open_violations'] += open_violations
+                    if status == 'critical':
+                        groups[key]['critical_count'] += 1
+                    elif status == 'warning':
+                        groups[key]['warning_count'] += 1
+                    else:
+                        groups[key]['good_count'] += 1
+
+                # Подсчёт средних
+                legal_entities = []
+                for g in groups.values():
+                    n = len(g['objects'])
+                    g['avg_score'] = round(sum(o['score'] for o in g['objects']) / n) if n else 0
+                    g['objects_count'] = n
+                    legal_entities.append(g)
+
+                legal_entities.sort(key=lambda x: x['avg_score'])
+
+                totals = {
+                    'legal_entities_count': len(legal_entities),
+                    'objects_count': sum(g['objects_count'] for g in legal_entities),
+                    'critical_count': sum(g['critical_count'] for g in legal_entities),
+                    'warning_count': sum(g['warning_count'] for g in legal_entities),
+                    'good_count': sum(g['good_count'] for g in legal_entities),
+                    'total_violations': sum(g['total_violations'] for g in legal_entities),
+                    'total_open_violations': sum(g['total_open_violations'] for g in legal_entities),
+                    'avg_score': round(sum(g['avg_score'] for g in legal_entities) / len(legal_entities)) if legal_entities else 0,
+                }
+
+                return response(200, {
+                    'legal_entities': legal_entities,
+                    'totals': totals,
+                })
+
             elif action == 'objects':
                 user_id = params.get('user_id')
                 if user_id:
@@ -919,7 +1095,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 obj = cursor.fetchone()
                 if not obj:
                     return response(404, {'error': 'Объект не найден'})
-                return response(200, dict(obj))
+                obj_dict = dict(obj)
+                # Расшифровка ИНН/ОГРН
+                inn_enc = obj_dict.get('inn_enc')
+                ogrn_enc = obj_dict.get('ogrn_enc')
+                obj_dict['inn'] = decrypt_field(inn_enc) if inn_enc else ''
+                obj_dict['ogrn'] = decrypt_field(ogrn_enc) if ogrn_enc else ''
+                return response(200, obj_dict)
 
             elif action == 'auth_logs':
                 limit = int(params.get('limit', '100'))
@@ -1021,6 +1203,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return response(400, {'error': 'object_id обязателен'})
             body.pop('action', None)
             body.pop('user_id', None)
+
+            # Шифрование ИНН/ОГРН перед сохранением
+            inn_plain = body.pop('inn', None)
+            ogrn_plain = body.pop('ogrn', None)
+            if inn_plain is not None:
+                body['inn_enc'] = encrypt_field(str(inn_plain).strip()) if str(inn_plain).strip() else None
+            if ogrn_plain is not None:
+                body['ogrn_enc'] = encrypt_field(str(ogrn_plain).strip()) if str(ogrn_plain).strip() else None
+
             if body:
                 set_clause = ', '.join([f'{k} = %s' for k in body.keys()])
                 values = list(body.values()) + [object_id]

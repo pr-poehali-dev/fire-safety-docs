@@ -27,6 +27,7 @@ export const allSections = [
   { id: 'fires', icon: 'Flame', title: 'Пожары', color: 'bg-red-600' },
   { id: 'journal', icon: 'Clipboard', title: 'Журнал эксплуатации систем противопожарной защиты', color: 'bg-blue-500' },
   { id: 'checklist', icon: 'CheckSquare', title: 'Чек-лист', color: 'bg-orange-500' },
+  { id: 'pb_overview', icon: 'PieChart', title: 'ПБ по юр. лицам', color: 'bg-cyan-600' },
   { id: 'assessment', icon: 'AlertTriangle', title: 'Оценка ПБ и риски', color: 'bg-orange-500' },
   { id: 'executive_docs', icon: 'FolderOpen', title: 'Исполнительная документация', color: 'bg-blue-500' },
   { id: 'calculations', icon: 'Calculator', title: 'Расчеты по категории взрывопожарной и пожарной опасности', color: 'bg-orange-500' },
@@ -90,6 +91,11 @@ export const adminOnlySections = new Set([
   'admin_guide',
 ]);
 
+/** Разделы доступные только администратору и руководителю (анализ по юр.лицам). */
+export const managerAndAdminSections = new Set([
+  'pb_overview',
+]);
+
 /**
  * Возвращает список разделов, доступных для роли.
  * - admin: все разделы
@@ -99,7 +105,10 @@ export const adminOnlySections = new Set([
  */
 export function getSectionsForRole(roleCode: string): Set<string> {
   if (roleCode === 'admin') {
-    return new Set([...baseUserSections, ...adminOnlySections]);
+    return new Set([...baseUserSections, ...adminOnlySections, ...managerAndAdminSections]);
+  }
+  if (roleCode === 'manager') {
+    return new Set([...baseUserSections, ...managerAndAdminSections]);
   }
   return baseUserSections;
 }

@@ -13,6 +13,7 @@ const DocumentationSection = lazy(() => import('@/components/DocumentationSectio
 const ChecklistSection = lazy(() => import('@/components/ChecklistSection'));
 const DrillsSection = lazy(() => import('@/components/DrillsSection'));
 const AssessmentDashboard = lazy(() => import('@/components/AssessmentDashboard'));
+const PBOverviewSection = lazy(() => import('@/components/PBOverviewSection'));
 const ExecutiveDocsSection = lazy(() => import('@/components/ExecutiveDocsSection'));
 const CalculationsSection = lazy(() => import('@/components/CalculationsSection'));
 const AuditsSection = lazy(() => import('@/components/AuditsSection'));
@@ -120,6 +121,8 @@ export default function AppSectionRenderer({
         return <DrillsSection fields={drillFields} objectId={objectId} />;
       case 'assessment':
         return <AssessmentDashboard objectId={objectId} fireIncidents={fireIncidents} />;
+      case 'pb_overview':
+        return <PBOverviewSection />;
       case 'executive_docs':
         return <ExecutiveDocsSection objectId={objectId} />;
       case 'calculations':
