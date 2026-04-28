@@ -8,11 +8,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Icon from '@/components/ui/icon';
-import { SUBSTANCES, SUBSTANCE_TYPE_LABELS, getSubstanceById, Substance } from '@/lib/sp12/substances';
-import { calculateCategory, CalculationResult, CalculationInput, CATEGORY_COLORS } from '@/lib/sp12/calculator';
+import { SUBSTANCES, SUBSTANCE_TYPE_LABELS, getSubstanceById } from '@/lib/sp12/substances';
+import {
+  calculateCategory,
+  CalculationResult,
+  CalculationInput,
+  SubstanceEntry,
+  CATEGORY_COLORS,
+} from '@/lib/sp12/calculator';
 import { authedFetch, DB_API } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { createPDF, setFontBold, setFontNormal } from '@/lib/pdfUtils';
+
+interface RowData {
+  rowId: string;
+  substanceId: string;
+  quantity: string;
+  massPerUnit: string;
+  totalMass: string;
+}
 
 interface FormState {
   roomName: string;
@@ -20,12 +34,19 @@ interface FormState {
   height: string;
   freeVolume: string;
   roomTemp: string;
-  substanceId: string;
-  mass: string;
   loadArea: string;
   emergencyVentilation: boolean;
   shutoffTime: string;
+  rows: RowData[];
 }
+
+const makeRow = (substanceId = 'gasoline'): RowData => ({
+  rowId: Math.random().toString(36).slice(2, 10),
+  substanceId,
+  quantity: '1',
+  massPerUnit: '',
+  totalMass: '',
+});
 
 const DEFAULT_FORM: FormState = {
   roomName: '',
@@ -33,11 +54,10 @@ const DEFAULT_FORM: FormState = {
   height: '',
   freeVolume: '',
   roomTemp: '20',
-  substanceId: 'gasoline',
-  mass: '',
   loadArea: '',
   emergencyVentilation: false,
   shutoffTime: '120',
+  rows: [makeRow()],
 };
 
 interface ValidationErrors {
@@ -49,8 +69,6 @@ interface HistoryEntry {
   room_name: string;
   category: string;
   calculated_at: string;
-  input_data: CalculationInput;
-  result: CalculationResult;
   user_email?: string;
 }
 
@@ -66,8 +84,6 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const substance = useMemo(() => getSubstanceById(form.substanceId) || SUBSTANCES[0], [form.substanceId]);
-
   const validate = (f: FormState): ValidationErrors => {
     const e: ValidationErrors = {};
     if (!f.roomName.trim()) e.roomName = 'Укажите наименование помещения';
@@ -75,40 +91,76 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
     if (!area || area <= 0) e.area = 'Площадь должна быть положительной';
     const height = parseFloat(f.height);
     if (!height || height <= 0) e.height = 'Высота должна быть положительной';
-    const mass = parseFloat(f.mass);
-    if (!f.mass || isNaN(mass) || mass < 0) e.mass = 'Масса должна быть ≥ 0';
+    if (f.rows.length === 0) {
+      e.rows = 'Добавьте хотя бы одно вещество';
+    } else {
+      let hasMass = false;
+      f.rows.forEach((r, idx) => {
+        const total = parseFloat(r.totalMass);
+        const qty = parseFloat(r.quantity);
+        const mpu = parseFloat(r.massPerUnit);
+        const rowMass = !isNaN(total) && total > 0 ? total : (qty > 0 && mpu > 0 ? qty * mpu : 0);
+        if (rowMass > 0) hasMass = true;
+        if (!r.substanceId) e[`row_${idx}_substance`] = 'Выберите вещество';
+      });
+      if (!hasMass) e.rows_mass = 'Укажите количество и массу хотя бы у одного вещества';
+    }
     if (f.freeVolume && parseFloat(f.freeVolume) < 0) e.freeVolume = 'Свободный объём не может быть отрицательным';
     return e;
   };
 
-  const buildInput = (f: FormState, sub: Substance): CalculationInput | null => {
+  const buildInput = (f: FormState): CalculationInput | null => {
     const area = parseFloat(f.area);
     const height = parseFloat(f.height);
-    const mass = parseFloat(f.mass);
-    if (!area || !height || isNaN(mass)) return null;
+    if (!area || !height) return null;
+
+    const substances: SubstanceEntry[] = f.rows
+      .map((r) => {
+        const sub = getSubstanceById(r.substanceId);
+        if (!sub) return null;
+        const total = parseFloat(r.totalMass);
+        const qty = parseFloat(r.quantity);
+        const mpu = parseFloat(r.massPerUnit);
+        const finalMass = !isNaN(total) && total > 0 ? total : (qty > 0 && mpu > 0 ? qty * mpu : 0);
+        if (finalMass <= 0) return null;
+        return {
+          rowId: r.rowId,
+          substance: sub,
+          quantity: !isNaN(qty) ? qty : undefined,
+          massPerUnit: !isNaN(mpu) ? mpu : undefined,
+          mass: finalMass,
+        };
+      })
+      .filter((x): x is SubstanceEntry => x !== null);
+
+    if (substances.length === 0) return null;
+
     return {
       roomName: f.roomName,
       area,
       height,
       freeVolume: f.freeVolume ? parseFloat(f.freeVolume) : undefined,
       roomTemp: f.roomTemp ? parseFloat(f.roomTemp) : 20,
-      substance: sub,
-      mass,
+      substances,
       loadArea: f.loadArea ? parseFloat(f.loadArea) : undefined,
       emergencyVentilation: f.emergencyVentilation,
       shutoffTime: f.shutoffTime ? parseFloat(f.shutoffTime) : 120,
     };
   };
 
-  const performCalculation = (f: FormState, sub: Substance) => {
+  const performCalculation = (f: FormState) => {
     const errs = validate(f);
     setErrors(errs);
-    if (Object.keys(errs).length > 0) {
+    const blockingErrors = Object.keys(errs).filter((k) => k !== 'roomName');
+    if (blockingErrors.length > 0) {
       setResult(null);
       return;
     }
-    const input = buildInput(f, sub);
-    if (!input) return;
+    const input = buildInput(f);
+    if (!input) {
+      setResult(null);
+      return;
+    }
     try {
       const res = calculateCategory(input);
       setResult(res);
@@ -118,21 +170,34 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
     }
   };
 
-  // Debounce 500ms
+  // АВТОПЕРЕСЧЁТ — debounce 400 мс на любое изменение формы
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => performCalculation(form, substance), 500);
+    debounceRef.current = setTimeout(() => performCalculation(form), 400);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, substance.id]);
+  }, [form]);
 
-  const handleChange = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+  const handleField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRecalculate = () => performCalculation(form, substance);
+  const updateRow = (rowId: string, patch: Partial<RowData>) => {
+    setForm((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)),
+    }));
+  };
+
+  const addRow = () => {
+    setForm((prev) => ({ ...prev, rows: [...prev.rows, makeRow()] }));
+  };
+
+  const removeRow = (rowId: string) => {
+    setForm((prev) => ({ ...prev, rows: prev.rows.filter((r) => r.rowId !== rowId) }));
+  };
 
   const loadHistory = async () => {
     if (!objectId) return;
@@ -146,8 +211,6 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
           room_name: (r.room_name as string) || '',
           category: (r.category as string) || '',
           calculated_at: (r.calculated_at as string) || (r.created_at as string),
-          input_data: typeof r.input_data === 'string' ? JSON.parse(r.input_data as string) : (r.input_data as CalculationInput),
-          result: typeof r.result === 'string' ? JSON.parse(r.result as string) : (r.result as CalculationResult),
           user_email: r.user_email as string,
         })),
       );
@@ -163,7 +226,7 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
 
   const handleSave = async () => {
     if (!result) return;
-    const input = buildInput(form, substance);
+    const input = buildInput(form);
     if (!input) return;
     try {
       const payload: Record<string, unknown> = {
@@ -173,7 +236,17 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
         delta_p: result.deltaP || null,
         fire_load_q: result.Q || null,
         specific_load_g: result.g || null,
-        input_data: JSON.stringify({ ...input, substance: { id: substance.id, name: substance.name } }),
+        input_data: JSON.stringify({
+          ...input,
+          substances: input.substances.map((s) => ({
+            rowId: s.rowId,
+            substanceId: s.substance.id,
+            substanceName: s.substance.name,
+            quantity: s.quantity,
+            massPerUnit: s.massPerUnit,
+            mass: s.mass,
+          })),
+        }),
         result: JSON.stringify(result),
         calculated_at: new Date().toISOString(),
       };
@@ -187,12 +260,21 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
         toast({ title: 'Сохранено', description: 'Расчёт занесён в историю' });
         loadHistory();
       } else {
-        toast({ title: 'Ошибка', description: 'Не удалось сохранить расчёт', variant: 'destructive' });
+        toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' });
       }
     } catch (e) {
       console.error(e);
       toast({ title: 'Ошибка', description: 'Сбой сохранения', variant: 'destructive' });
     }
+  };
+
+  const categoryRgb = (cat: string): [number, number, number] => {
+    const map: Record<string, [number, number, number]> = {
+      'А': [239, 68, 68], 'Б': [249, 115, 22], 'В1': [245, 158, 11],
+      'В2': [251, 191, 36], 'В3': [250, 204, 21], 'В4': [253, 224, 71],
+      'Г': [59, 130, 246], 'Д': [16, 185, 129],
+    };
+    return map[cat] || [100, 100, 100];
   };
 
   const handleExportPDF = async () => {
@@ -214,41 +296,76 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
     doc.text('согласно СП 12.13130.2009', pageWidth / 2, y, { align: 'center' });
     y += 8;
 
-    // Шапка
     setFontBold(doc);
     doc.setFontSize(10);
-    doc.text('1. Исходные данные', margin, y);
+    doc.text('1. Параметры помещения', margin, y);
     y += 5;
     setFontNormal(doc);
     doc.setFontSize(9);
 
-    const rows: [string, string][] = [
-      ['Наименование помещения', form.roomName || '—'],
+    const headerRows: [string, string][] = [
+      ['Наименование', form.roomName || '—'],
       ['Площадь, м²', form.area || '—'],
       ['Высота, м', form.height || '—'],
-      ['Свободный объём V_св, м³', result.freeVolume.toFixed(2)],
-      ['Температура в помещении, °C', form.roomTemp || '20'],
-      ['Вещество', substance.name],
-      ['Тип', SUBSTANCE_TYPE_LABELS[substance.type]],
-      ['Низшая теплота сгорания, МДж/кг', String(substance.heatOfCombustion)],
-      ['Масса вещества, кг', form.mass],
+      ['V_св, м³', result.freeVolume.toFixed(2)],
+      ['t°, °C', form.roomTemp || '20'],
       ['Площадь нагрузки, м²', form.loadArea || `${Math.min(parseFloat(form.area) || 0, 10)} (по умолч.)`],
       ['Аварийная вентиляция', form.emergencyVentilation ? 'есть' : 'нет'],
     ];
 
-    rows.forEach(([k, v]) => {
+    headerRows.forEach(([k, v]) => {
       if (y > 275) { doc.addPage(); y = 18; }
       doc.setDrawColor(220);
       doc.line(margin, y - 3, pageWidth - margin, y - 3);
       doc.text(k, margin + 1, y);
-      doc.text(v, margin + 95, y);
+      doc.text(v, margin + 80, y);
       y += 5;
     });
 
     y += 4;
     setFontBold(doc);
     doc.setFontSize(10);
-    doc.text('2. Промежуточные расчёты', margin, y);
+    doc.text('2. Вещества в помещении', margin, y);
+    y += 5;
+    setFontNormal(doc);
+    doc.setFontSize(8);
+
+    // Таблица веществ
+    const colWidths = [8, 80, 25, 30, 28];
+    const headers = ['№', 'Вещество', 'Масса, кг', 'Q, МДж', 'ΔP, кПа'];
+    let x = margin;
+    headers.forEach((h, i) => {
+      doc.rect(x, y - 4, colWidths[i], 6);
+      setFontBold(doc);
+      doc.text(h, x + 1, y);
+      x += colWidths[i];
+    });
+    y += 6;
+    setFontNormal(doc);
+    result.contributions.forEach((c, idx) => {
+      if (y > 270) { doc.addPage(); y = 18; }
+      x = margin;
+      const cells = [
+        String(idx + 1),
+        c.substanceName,
+        c.totalMass.toFixed(1),
+        c.Q.toFixed(1),
+        c.deltaP !== undefined ? c.deltaP.toFixed(2) : '—',
+      ];
+      const wrapped = cells.map((cv, i) => doc.splitTextToSize(cv, colWidths[i] - 2));
+      const maxH = Math.max(...wrapped.map((w) => w.length)) * 3.5 + 1.5;
+      wrapped.forEach((lines, i) => {
+        doc.rect(x, y - 4, colWidths[i], maxH);
+        lines.forEach((l: string, li: number) => doc.text(l, x + 1, y + li * 3.5));
+        x += colWidths[i];
+      });
+      y += maxH;
+    });
+
+    y += 6;
+    setFontBold(doc);
+    doc.setFontSize(10);
+    doc.text('3. Промежуточные расчёты', margin, y);
     y += 5;
     setFontNormal(doc);
     doc.setFontSize(8.5);
@@ -260,20 +377,20 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
       y += 4;
       setFontNormal(doc);
       if (step.formula) {
-        const formulaLines = doc.splitTextToSize(`Формула: ${step.formula}`, pageWidth - margin * 2 - 4);
-        doc.text(formulaLines, margin + 4, y);
-        y += formulaLines.length * 4;
+        const fl = doc.splitTextToSize(`Формула: ${step.formula}`, pageWidth - margin * 2 - 4);
+        doc.text(fl, margin + 4, y);
+        y += fl.length * 4;
       }
-      const valueLines = doc.splitTextToSize(step.value, pageWidth - margin * 2 - 4);
-      doc.text(valueLines, margin + 4, y);
-      y += valueLines.length * 4 + 2;
+      const vl = doc.splitTextToSize(step.value, pageWidth - margin * 2 - 4);
+      doc.text(vl, margin + 4, y);
+      y += vl.length * 4 + 2;
     });
 
     if (y > 245) { doc.addPage(); y = 18; }
     y += 4;
     setFontBold(doc);
     doc.setFontSize(10);
-    doc.text('3. Результат', margin, y);
+    doc.text('4. Результат', margin, y);
     y += 7;
     const [r, g, b] = categoryRgb(result.category);
     doc.setFillColor(r, g, b);
@@ -284,9 +401,9 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
     doc.setTextColor(0);
     setFontNormal(doc);
     doc.setFontSize(9);
-    const reasonLines = doc.splitTextToSize(`Обоснование: ${result.reason}`, pageWidth - margin * 2 - 35);
-    doc.text(reasonLines, margin + 35, y);
-    y += Math.max(12, reasonLines.length * 4 + 2);
+    const rl = doc.splitTextToSize(`Обоснование: ${result.reason}`, pageWidth - margin * 2 - 35);
+    doc.text(rl, margin + 35, y);
+    y += Math.max(12, rl.length * 4 + 2);
 
     if (result.warnings.length > 0) {
       y += 3;
@@ -311,36 +428,22 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
     y += 7;
     doc.text('Согласовано: _________________ /_________________ /', margin, y);
 
-    const fileName = `Расчёт_категории_${form.roomName || 'помещение'}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
-  };
-
-  const categoryRgb = (cat: string): [number, number, number] => {
-    const map: Record<string, [number, number, number]> = {
-      'А': [239, 68, 68],
-      'Б': [249, 115, 22],
-      'В1': [245, 158, 11],
-      'В2': [251, 191, 36],
-      'В3': [250, 204, 21],
-      'В4': [253, 224, 71],
-      'Г': [59, 130, 246],
-      'Д': [16, 185, 129],
-    };
-    return map[cat] || [100, 100, 100];
+    doc.save(`Расчёт_категории_${form.roomName || 'помещение'}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   return (
     <div className="space-y-5">
-      {/* Форма ввода */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center">
               <Icon name="Calculator" className="text-white" size={20} />
             </div>
-            <div>
+            <div className="flex-1">
               <CardTitle>Расчёт категории помещения по СП 12.13130.2009</CardTitle>
-              <CardDescription>Автоматический расчёт с учётом избыточного давления взрыва и пожарной нагрузки</CardDescription>
+              <CardDescription>
+                Автоматический пересчёт при любом изменении данных. Можно добавлять любое количество веществ.
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -352,98 +455,46 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
               Параметры помещения
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Field
-                label="Наименование помещения"
-                error={errors.roomName}
-                value={form.roomName}
-                onChange={(v) => handleChange('roomName', v)}
-                placeholder="Цех №1, Склад ГСМ"
-              />
-              <Field
-                label="Площадь S, м²"
-                error={errors.area}
-                value={form.area}
-                onChange={(v) => handleChange('area', v)}
-                type="number"
-                placeholder="например, 120"
-              />
-              <Field
-                label="Высота H, м"
-                error={errors.height}
-                value={form.height}
-                onChange={(v) => handleChange('height', v)}
-                type="number"
-                placeholder="например, 4"
-              />
-              <Field
-                label="Свободный объём V_св, м³ (опц.)"
-                error={errors.freeVolume}
-                value={form.freeVolume}
-                onChange={(v) => handleChange('freeVolume', v)}
-                type="number"
-                placeholder="по умолч. S × H × 0,8"
-              />
-              <Field
-                label="Температура в помещении, °C"
-                value={form.roomTemp}
-                onChange={(v) => handleChange('roomTemp', v)}
-                type="number"
-              />
-              <Field
-                label="Площадь нагрузки, м² (опц.)"
-                value={form.loadArea}
-                onChange={(v) => handleChange('loadArea', v)}
-                type="number"
-                placeholder="не менее 10 м²"
-              />
+              <Field label="Наименование помещения" error={errors.roomName} value={form.roomName} onChange={(v) => handleField('roomName', v)} placeholder="Цех №1" />
+              <Field label="Площадь S, м²" error={errors.area} value={form.area} onChange={(v) => handleField('area', v)} type="number" />
+              <Field label="Высота H, м" error={errors.height} value={form.height} onChange={(v) => handleField('height', v)} type="number" />
+              <Field label="V_св, м³ (опц.)" error={errors.freeVolume} value={form.freeVolume} onChange={(v) => handleField('freeVolume', v)} type="number" placeholder="по умолч. S × H × 0,8" />
+              <Field label="Температура, °C" value={form.roomTemp} onChange={(v) => handleField('roomTemp', v)} type="number" />
+              <Field label="Площадь нагрузки, м²" value={form.loadArea} onChange={(v) => handleField('loadArea', v)} type="number" placeholder="не менее 10" />
             </div>
           </div>
 
-          {/* Вещество */}
+          {/* Вещества — множественный ввод */}
           <div>
-            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Icon name="FlaskConical" size={16} className="text-muted-foreground" />
-              Горючее вещество
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div className="space-y-1.5 md:col-span-2">
-                <Label className="text-xs">Вещество</Label>
-                <Select value={form.substanceId} onValueChange={(v) => handleChange('substanceId', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent className="max-h-80">
-                    {(['gas', 'lvzh', 'gzh', 'dust', 'solid'] as const).map((type) => (
-                      <SelectGroup key={type}>
-                        <SelectLabel className="text-[10px] uppercase tracking-wide">
-                          {SUBSTANCE_TYPE_LABELS[type]}
-                        </SelectLabel>
-                        {SUBSTANCES.filter((s) => s.type === type).map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Field
-                label="Масса m, кг"
-                error={errors.mass}
-                value={form.mass}
-                onChange={(v) => handleChange('mass', v)}
-                type="number"
-                placeholder="например, 50"
-              />
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Icon name="FlaskConical" size={16} className="text-muted-foreground" />
+                Вещества в помещении ({form.rows.length})
+              </h4>
+              <Button onClick={addRow} variant="outline" size="sm" className="gap-1.5 h-8">
+                <Icon name="Plus" size={14} />
+                Добавить вещество
+              </Button>
             </div>
-            <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-muted-foreground">
-              <span>Q_н = <b className="text-foreground">{substance.heatOfCombustion}</b> МДж/кг</span>
-              {substance.flashPoint !== undefined && (
-                <span>t_всп = <b className="text-foreground">{substance.flashPoint}</b> °C</span>
-              )}
-              {substance.lcl !== undefined && (
-                <span>НКПР = <b className="text-foreground">{substance.lcl}</b> %</span>
-              )}
-              {substance.vaporDensity !== undefined && (
-                <span>ρ = <b className="text-foreground">{substance.vaporDensity}</b> кг/м³</span>
-              )}
+
+            {errors.rows_mass && (
+              <Alert variant="destructive" className="mb-3">
+                <Icon name="AlertCircle" size={16} />
+                <AlertDescription className="text-xs">{errors.rows_mass}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              {form.rows.map((row, idx) => (
+                <SubstanceRow
+                  key={row.rowId}
+                  index={idx}
+                  data={row}
+                  canDelete={form.rows.length > 1}
+                  onChange={(patch) => updateRow(row.rowId, patch)}
+                  onDelete={() => removeRow(row.rowId)}
+                />
+              ))}
             </div>
           </div>
 
@@ -454,17 +505,9 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
               Дополнительно
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Field
-                label="Время отключения трубопровода, с"
-                value={form.shutoffTime}
-                onChange={(v) => handleChange('shutoffTime', v)}
-                type="number"
-              />
+              <Field label="Время отключения трубопровода, с" value={form.shutoffTime} onChange={(v) => handleField('shutoffTime', v)} type="number" />
               <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
-                <Switch
-                  checked={form.emergencyVentilation}
-                  onCheckedChange={(c) => handleChange('emergencyVentilation', c)}
-                />
+                <Switch checked={form.emergencyVentilation} onCheckedChange={(c) => handleField('emergencyVentilation', c)} />
                 <div>
                   <Label className="text-sm">Аварийная вентиляция</Label>
                   <p className="text-[11px] text-muted-foreground">Понижает категорию (СП 12 § 6.5)</p>
@@ -473,11 +516,11 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button onClick={handleRecalculate} className="gap-2">
-              <Icon name="RefreshCw" size={15} />
-              Пересчитать
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mr-auto">
+              <Icon name="Zap" size={13} className="text-amber-500" />
+              Расчёт обновляется автоматически
+            </div>
             <Button onClick={() => setForm(DEFAULT_FORM)} variant="outline" className="gap-2">
               <Icon name="RotateCcw" size={15} />
               Сбросить
@@ -485,23 +528,21 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
             {result && objectId && (
               <Button onClick={handleSave} variant="outline" className="gap-2">
                 <Icon name="Save" size={15} />
-                Сохранить в историю
+                Сохранить
               </Button>
             )}
             {result && (
               <Button onClick={handleExportPDF} variant="outline" className="gap-2">
                 <Icon name="Download" size={15} />
-                Экспорт PDF
+                PDF
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Результат */}
       {result && <ResultBlock result={result} />}
 
-      {/* История */}
       {history.length > 0 && (
         <Card>
           <CardHeader>
@@ -534,6 +575,115 @@ export default function CategoryCalculator({ objectId }: CategoryCalculatorProps
             </div>
           </CardContent>
         </Card>
+      )}
+    </div>
+  );
+}
+
+interface SubstanceRowProps {
+  index: number;
+  data: RowData;
+  canDelete: boolean;
+  onChange: (patch: Partial<RowData>) => void;
+  onDelete: () => void;
+}
+
+function SubstanceRow({ index, data, canDelete, onChange, onDelete }: SubstanceRowProps) {
+  const sub = getSubstanceById(data.substanceId);
+  const qty = parseFloat(data.quantity);
+  const mpu = parseFloat(data.massPerUnit);
+  const total = parseFloat(data.totalMass);
+  const computedFromUnit = qty > 0 && mpu > 0 ? qty * mpu : 0;
+  const effectiveMass = total > 0 ? total : computedFromUnit;
+
+  return (
+    <div className="p-3 rounded-lg border bg-muted/10 space-y-2">
+      <div className="flex items-start gap-2">
+        <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+          {index + 1}
+        </div>
+
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-2">
+          {/* Вещество */}
+          <div className="md:col-span-5">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Вещество</Label>
+            <Select value={data.substanceId} onValueChange={(v) => onChange({ substanceId: v })}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-80">
+                {(['gas', 'lvzh', 'gzh', 'dust', 'solid'] as const).map((type) => (
+                  <SelectGroup key={type}>
+                    <SelectLabel className="text-[10px] uppercase tracking-wide">{SUBSTANCE_TYPE_LABELS[type]}</SelectLabel>
+                    {SUBSTANCES.filter((s) => s.type === type).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Количество */}
+          <div className="md:col-span-2">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Кол-во, шт</Label>
+            <Input
+              type="number"
+              value={data.quantity}
+              onChange={(e) => onChange({ quantity: e.target.value })}
+              placeholder="1"
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Масса единицы */}
+          <div className="md:col-span-2">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Масса 1 шт, кг</Label>
+            <Input
+              type="number"
+              value={data.massPerUnit}
+              onChange={(e) => onChange({ massPerUnit: e.target.value })}
+              placeholder="0,5"
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Полная масса (опционально, переопределяет) */}
+          <div className="md:col-span-3">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">или Σ масса, кг</Label>
+            <Input
+              type="number"
+              value={data.totalMass}
+              onChange={(e) => onChange({ totalMass: e.target.value })}
+              placeholder={computedFromUnit > 0 ? computedFromUnit.toFixed(2) : 'итог'}
+              className="h-9 text-xs"
+            />
+          </div>
+        </div>
+
+        {canDelete && (
+          <Button
+            onClick={onDelete}
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-700 flex-shrink-0"
+          >
+            <Icon name="Trash2" size={14} />
+          </Button>
+        )}
+      </div>
+
+      {/* Информация о веществе */}
+      {sub && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground pl-9">
+          <span>Тип: <b className="text-foreground">{SUBSTANCE_TYPE_LABELS[sub.type]}</b></span>
+          <span>Q_н: <b className="text-foreground">{sub.heatOfCombustion}</b> МДж/кг</span>
+          {sub.flashPoint !== undefined && <span>t_всп: <b className="text-foreground">{sub.flashPoint}</b>°C</span>}
+          {sub.vaporDensity !== undefined && <span>ρ: <b className="text-foreground">{sub.vaporDensity}</b> кг/м³</span>}
+          {effectiveMass > 0 && (
+            <span className="ml-auto text-emerald-600">
+              Итого: <b>{effectiveMass.toFixed(2)} кг</b>
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
@@ -581,32 +731,58 @@ function ResultBlock({ result }: { result: CalculationResult }) {
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Основные показатели */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {result.deltaP !== undefined && (
               <Stat
-                label="ΔP (давление взрыва)"
+                label="ΔP_max"
                 value={`${result.deltaP.toFixed(2)} кПа`}
                 hint={result.deltaP > 5 ? '> 5 кПа (взрывоопасно)' : '≤ 5 кПа'}
                 color={result.deltaP > 5 ? 'red' : 'green'}
               />
             )}
-            {result.Q !== undefined && (
-              <Stat label="Q (полная нагрузка)" value={`${result.Q.toFixed(0)} МДж`} />
-            )}
-            {result.g !== undefined && (
-              <Stat label="g (удельная нагрузка)" value={`${result.g.toFixed(0)} МДж/м²`} />
-            )}
-            <Stat label="V_св (свободный объём)" value={`${result.freeVolume.toFixed(1)} м³`} />
-            {result.Cst !== undefined && (
-              <Stat label="C_st" value={`${result.Cst.toFixed(2)} %`} />
-            )}
-            {result.beta !== undefined && (
-              <Stat label="β" value={result.beta.toFixed(3)} />
-            )}
+            {result.Q !== undefined && <Stat label="Q (Σ нагрузка)" value={`${result.Q.toFixed(0)} МДж`} />}
+            {result.g !== undefined && <Stat label="g (удельная)" value={`${result.g.toFixed(0)} МДж/м²`} />}
+            <Stat label="V_св" value={`${result.freeVolume.toFixed(1)} м³`} />
           </div>
 
-          {/* Промежуточные шаги */}
+          {/* Вклад каждого вещества */}
+          {result.contributions.length > 1 && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-muted/30 px-4 py-2 text-xs font-semibold flex items-center gap-2">
+                <Icon name="ListPlus" size={13} />
+                Вклад веществ ({result.contributions.length})
+              </div>
+              <table className="w-full text-xs">
+                <thead className="bg-muted/20">
+                  <tr>
+                    <th className="text-left px-3 py-1.5">Вещество</th>
+                    <th className="text-right px-3 py-1.5">Масса, кг</th>
+                    <th className="text-right px-3 py-1.5">Q, МДж</th>
+                    <th className="text-right px-3 py-1.5">ΔP, кПа</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.contributions.map((c) => (
+                    <tr key={c.rowId} className="border-t">
+                      <td className="px-3 py-1.5">{c.substanceName}</td>
+                      <td className="text-right px-3 py-1.5">{c.totalMass.toFixed(1)}</td>
+                      <td className="text-right px-3 py-1.5">{c.Q.toFixed(1)}</td>
+                      <td className="text-right px-3 py-1.5">
+                        {c.deltaP !== undefined ? (
+                          <span className={c.deltaP > 5 ? 'text-red-600 font-semibold' : ''}>
+                            {c.deltaP.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <details className="border rounded-lg" open>
             <summary className="cursor-pointer px-4 py-2.5 font-medium text-sm hover:bg-muted/30 select-none flex items-center gap-2">
               <Icon name="ListOrdered" size={14} />
@@ -644,8 +820,7 @@ function ResultBlock({ result }: { result: CalculationResult }) {
 }
 
 function Stat({ label, value, hint, color }: { label: string; value: string; hint?: string; color?: 'red' | 'green' }) {
-  const colorClass =
-    color === 'red' ? 'text-red-600' : color === 'green' ? 'text-emerald-600' : 'text-foreground';
+  const colorClass = color === 'red' ? 'text-red-600' : color === 'green' ? 'text-emerald-600' : 'text-foreground';
   return (
     <div className="p-3 rounded-lg border bg-muted/20">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
