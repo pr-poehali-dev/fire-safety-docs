@@ -7,6 +7,7 @@ import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { authedFetch, DB_API } from '@/lib/api';
+import NotificationsScheduler from '@/components/NotificationsScheduler';
 
 interface Notification {
   id: string;
@@ -171,6 +172,8 @@ export default function NotificationsSection({ objectId }: { objectId?: number }
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <NotificationsScheduler objectId={objectId} />
+
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
