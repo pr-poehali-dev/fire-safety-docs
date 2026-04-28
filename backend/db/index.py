@@ -35,7 +35,7 @@ ALLOWED_TABLES = {
     'section_fire_extinguishers', 'section_fire_protection', 'section_hose_rolling',
     'section_indoor_hydrants', 'section_ladder_tests', 'section_outdoor_hydrants',
     'section_ppe', 'section_smoke_ventilation', 'section_soue', 'section_valves_pumps',
-    'section_ventilation_cleaning',
+    'section_ventilation_cleaning', 'sp12_calculations',
 }
 
 OBJECT_SCOPED_TABLES: Set[str] = {
@@ -48,7 +48,7 @@ OBJECT_SCOPED_TABLES: Set[str] = {
     'section_fire_extinguishers', 'section_fire_protection', 'section_hose_rolling',
     'section_indoor_hydrants', 'section_ladder_tests', 'section_outdoor_hydrants',
     'section_ppe', 'section_smoke_ventilation', 'section_soue', 'section_valves_pumps',
-    'section_ventilation_cleaning',
+    'section_ventilation_cleaning', 'sp12_calculations',
 }
 
 PERSONAL_TABLES: Set[str] = {'user_profile'}

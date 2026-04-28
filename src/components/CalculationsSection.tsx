@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authedFetch, DB_API } from '@/lib/api';
+import CategoryCalculator from '@/components/sp12/CategoryCalculator';
 
 interface RoomCalculation {
   name: string;
@@ -94,6 +96,23 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
   };
 
   return (
+    <Tabs defaultValue="sp12" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsTrigger value="sp12" className="gap-1.5">
+          <Icon name="Calculator" size={14} />
+          Расчёт по СП 12
+        </TabsTrigger>
+        <TabsTrigger value="rooms" className="gap-1.5">
+          <Icon name="Table" size={14} />
+          Реестр помещений
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="sp12">
+        <CategoryCalculator objectId={objectId} />
+      </TabsContent>
+
+      <TabsContent value="rooms">
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
@@ -101,8 +120,8 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
             <Icon name="Calculator" className="text-white" size={24} />
           </div>
           <div>
-            <CardTitle>Расчеты по категории взрывопожарной и пожарной опасности</CardTitle>
-            <CardDescription>Внесение данных для расчета категории помещений</CardDescription>
+            <CardTitle>Реестр помещений (упрощённый ввод)</CardTitle>
+            <CardDescription>Список помещений с базовыми параметрами</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -235,22 +254,20 @@ export default function CalculationsSection({ objectId }: { objectId?: number })
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Icon name="TrendingUp" size={18} />
-                Выполнить расчет категории
+                Перейти к подробному расчёту
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                После добавления всех помещений нажмите кнопку для автоматического расчета категорий взрывопожарной и
-                пожарной опасности
+                Для автоматического расчёта категории по СП 12.13130.2009 (с ΔP, β, C_st, Q, g)
+                перейдите во вкладку «Расчёт по СП 12».
               </p>
-              <Button className="w-full">
-                <Icon name="Play" size={16} className="mr-2" />
-                Рассчитать категории
-              </Button>
             </CardContent>
           </Card>
         )}
       </CardContent>
     </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
